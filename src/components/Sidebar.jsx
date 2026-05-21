@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { LayoutDashboard, Receipt, Wallet, Tags, BarChart3, Plus, HelpCircle, LogOut, UserPlus, ChevronRight } from 'lucide-react';
-export default function Sidebar({ activeTab, setActiveTab, onQuickAdd, onOpenSupport, onOpenProfile, premiumStatus, onUpgradePlan, onLogout }) {
+export default function Sidebar({ activeTab, setActiveTab, onQuickAdd, onOpenSupport, onOpenProfile, premiumStatus, onUpgradePlan, onLogout, profileName }) {
     const menuItems = [
         { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
         { id: 'transactions', name: 'Transactions', icon: Receipt },
@@ -27,10 +27,10 @@ export default function Sidebar({ activeTab, setActiveTab, onQuickAdd, onOpenSup
       {/* User Profile Card */}
       <div id="profile-card" onClick={onOpenProfile} className="flex items-center gap-3 mb-8 p-3 rounded-none bg-transparent border border-[#141414] hover:bg-[#141414] hover:text-white cursor-pointer transition-all duration-200 group">
         <div className="w-8 h-8 rounded-full overflow-hidden border border-[#141414] group-hover:border-white transition-colors bg-[#E2E2D9]">
-          <img alt="Alex Morgan" className="w-full h-full object-cover grayscale" referrerPolicy="no-referrer" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBULAx8DIXqalKeGttF9Tr8qB6KfKOyNnYY6czPiNjuztmJmCAp_6L7kszqOLr_bXi6wHnUUrc293St_WMDqwvMjgiP9SiKNQ7bbFflUxqBQ6G1XqElOL1jiHOZHjCjXcrVf8vi_ga8DGPbIoyxzyZl--dbwD6FSUJljH_RcPYO9hvwDPCUKcYIw2mz4BymItd5isOlCRy5c1IQYswgR38DO9nFW-rbevufI-DSq0wKHbKcbKzIik6Nv6QDDgl1TquwAZfXpYa6ufbs"/>
+          <img alt={profileName} className="w-full h-full object-cover grayscale" referrerPolicy="no-referrer" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBULAx8DIXqalKeGttF9Tr8qB6KfKOyNnYY6czPiNjuztmJmCAp_6L7kszqOLr_bXi6wHnUUrc293St_WMDqwvMjgiP9SiKNQ7bbFflUxqBQ6G1XqElOL1jiHOZHjCjXcrVf8vi_ga8DGPbIoyxzyZl--dbwD6FSUJljH_RcPYO9hvwDPCUKcYIw2mz4BymItd5isOlCRy5c1IQYswgR38DO9nFW-rbevufI-DSq0wKHbKcbKzIik6Nv6QDDgl1TquwAZfXpYa6ufbs"/>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-serif text-xs italic text-[#141414] group-hover:text-white truncate">Alex Morgan</p>
+          <p className="font-serif text-xs italic text-[#141414] group-hover:text-white truncate">{profileName}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="text-[8px] font-mono tracking-[0.1em] uppercase text-[#F27D26] font-bold">
               {premiumStatus ? 'PRIME_EXHIBIT' : 'DEMO_STUDIO'}

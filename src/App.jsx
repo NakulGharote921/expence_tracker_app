@@ -18,42 +18,131 @@ import CategoriesTab from './components/CategoriesTab';
 import ReportsTab from './components/ReportsTab';
 import LoginPage from './components/LoginPage';
 import { INITIAL_CATEGORIES, INITIAL_TRANSACTIONS, INITIAL_BUDGETS, MOCK_NOTIFICATIONS } from './mockData';
+import { db } from './firebase';
+import { onValue, off, ref, set } from 'firebase/database';
 export default function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
     // App dynamic state databases
-    const [transactions, setTransactions] = useState(() => {
-        const storedTx = localStorage.getItem('wf_transactions');
-        if (storedTx) {
-            try {
-                return JSON.parse(storedTx);
-            }
-            catch (_) {
-                return INITIAL_TRANSACTIONS;
-            }
-        }
-        return INITIAL_TRANSACTIONS;
-    });
+    const [userKey, setUserKey] = useState(null);
+    const [isRtdbReady, setIsRtdbReady] = useState(false);
+
+    // RTDB write helpers (keep UI optimistic + persist)
+    const writeTransactions = async (nextTransactions) => {
+        if (!userKey)
+            return;
+        const txRef = ref(db, `users/${userKey}/transactions`);
+        await set(txRef, nextTransactions);
+    };
+
+    const writeBudgets = async (nextBudgets) => {
+        if (!userKey)
+            return;
+        const bRef = ref(db, `users/${userKey}/budgets`);
+        await set(bRef, nextBudgets);
+    };
+
+    const writeCategories = async (nextCategories) => {
+        if (!userKey)
+            return;
+        const cRef = ref(db, `users/${userKey}/categories`);
+        await set(cRef, nextCategories);
+    };
+
+    const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
     const [categories, setCategories] = useState(INITIAL_CATEGORIES);
-    const [budgets, setBudgets] = useState(() => {
-        const storedBudgets = localStorage.getItem('wf_budgets');
-        if (storedBudgets) {
-            try {
-                return JSON.parse(storedBudgets);
-            }
-            catch (_) {
-                return INITIAL_BUDGETS;
-            }
-        }
-        return INITIAL_BUDGETS;
-    });
+    const [budgets, setBudgets] = useState(INITIAL_BUDGETS);
     const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
-    // Sync state data to localStorage
+    const stableUserKeyFromEmail = (email) => {
+        try {
+            return btoa(String(email).trim().toLowerCase().replace(/\\s+/g, ''));
+        }
+        catch (_) {
+            // Fallback: replace unsafe base64 characters
+            return String(email).trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+        }
+    };
+
+    // Derive RTDB userKey from the email saved during login.
     useEffect(() => {
-        localStorage.setItem('wf_transactions', JSON.stringify(transactions));
-    }, [transactions]);
+        const email = localStorage.getItem('wf_profile_email');
+        if (!email) {
+            setUserKey(null);
+            setIsRtdbReady(false);
+            return;
+        }
+        const key = stableUserKeyFromEmail(email);
+        setUserKey(key);
+    }, []);
+
+    const transactionsPath = userKey ? `users/${userKey}/transactions` : null;
+    const budgetsPath = userKey ? `users/${userKey}/budgets` : null;
+    const categoriesPath = userKey ? `users/${userKey}/categories` : null;
+
+    // Subscribe to RTDB state changes and seed initial data if empty.
     useEffect(() => {
-        localStorage.setItem('wf_budgets', JSON.stringify(budgets));
-    }, [budgets]);
+        if (!userKey) return;
+
+        const txRef = ref(db, transactionsPath);
+        const bRef = ref(db, budgetsPath);
+        const cRef = ref(db, categoriesPath);
+
+        let seededTx = false;
+        let seededBudgets = false;
+        let seededCategories = false;
+
+        const unsubscribers = [
+            onValue(txRef, async (snap) => {
+                const val = snap.val();
+                if (val === null || val === undefined || !Array.isArray(val)) {
+                    if (!seededTx) {
+                        seededTx = true;
+                        await set(txRef, INITIAL_TRANSACTIONS);
+                    }
+                    return;
+                }
+                setTransactions(val);
+            }),
+            onValue(bRef, async (snap) => {
+                const val = snap.val();
+                if (val === null || val === undefined || !Array.isArray(val)) {
+                    if (!seededBudgets) {
+                        seededBudgets = true;
+                        await set(bRef, INITIAL_BUDGETS);
+                    }
+                    return;
+                }
+                setBudgets(val);
+            }),
+            onValue(cRef, async (snap) => {
+                const val = snap.val();
+                const isPlainObject =
+                    val !== null &&
+                    val !== undefined &&
+                    typeof val === 'object' &&
+                    !Array.isArray(val);
+
+                if (!isPlainObject) {
+                    if (!seededCategories) {
+                        seededCategories = true;
+                        await set(cRef, INITIAL_CATEGORIES);
+                    }
+                    return;
+                }
+                setCategories(val);
+            }),
+        ];
+
+        setIsRtdbReady(true);
+
+        return () => {
+            // onValue returns an unsubscribe function in Firebase modular SDK.
+            unsubscribers.forEach((u) => {
+                try {
+                    if (typeof u === 'function') u();
+                } catch (_) { }
+            });
+        };
+    }, [userKey, transactionsPath, budgetsPath, categoriesPath]);
     // Profile preferences & Login state
     const [isLoggedIn, setIsLoggedIn] = useState(() => {
         return localStorage.getItem('wf_is_logged_in') === 'true';
@@ -162,56 +251,78 @@ export default function App() {
             date: new Date().toISOString().split('T')[0],
             type: 'expense'
         };
-        setTransactions(prev => [newTx, ...prev]);
+        const next = [newTx, ...transactions];
+        setTransactions(next);
+        writeTransactions(next).catch(() => { });
         triggerToast(`Added expense for ₹${amount.toFixed(2)}!`);
     };
+
     const handleDeleteTransaction = (id) => {
         const target = transactions.find(t => t.id === id);
         if (!target)
             return;
-        requestConfirmation('Delete Transaction Record', `Are you absolutely sure you want to delete the transaction "${target.name}" for ₹${target.amount.toFixed(2)}? This action cannot be undone.`, () => {
-            setTransactions(prev => prev.filter(t => t.id !== id));
+
+        requestConfirmation('Delete Transaction Record', `Are you absolutely sure you want to delete the transaction "${target.name}" for ₹${target.amount.toFixed(2)}? This action cannot be undone.`, async () => {
+            const next = transactions.filter(t => t.id !== id);
+            setTransactions(next);
+            writeTransactions(next).catch(() => { });
             triggerToast(`Deleted transaction: ${target.name}`);
         });
     };
+
     const handleBulkDeleteTransactions = (ids) => {
-        requestConfirmation('Purge Multiple Ledger Entries', `Are you absolutely sure you want to delete ${ids.length} selected transaction records? This action is permanent and cannot be undone.`, () => {
-            setTransactions(prev => prev.filter(t => !ids.includes(t.id)));
+        requestConfirmation('Purge Multiple Ledger Entries', `Are you absolutely sure you want to delete ${ids.length} selected transaction records? This action is permanent and cannot be undone.`, async () => {
+            const next = transactions.filter(t => !ids.includes(t.id));
+            setTransactions(next);
+            writeTransactions(next).catch(() => { });
             triggerToast(`Successfully purged ${ids.length} transactions.`);
         });
     };
+
     const handleDeleteBudget = (category) => {
-        requestConfirmation('Delete Budget Cap', `Are you absolutely sure you want to remove the budget limit for the category "${category}"? You will lose tracking of spent limits for this classification.`, () => {
-            setBudgets(prev => prev.filter(b => b.category !== category));
+        requestConfirmation('Delete Budget Cap', `Are you absolutely sure you want to remove the budget limit for the category "${category}"? You will lose tracking of spent limits for this classification.`, async () => {
+            const next = budgets.filter(b => b.category !== category);
+            setBudgets(next);
+            writeBudgets(next).catch(() => { });
             triggerToast(`Deleted budget limit for ${category}.`);
         });
     };
+
     const handleAddTransactionFull = (txData) => {
         const newTx = {
             id: `tx-${Date.now()}`,
             ...txData
         };
-        setTransactions(prev => [newTx, ...prev]);
+        const next = [newTx, ...transactions];
+        setTransactions(next);
+        writeTransactions(next).catch(() => { });
         triggerToast(`Successfully recorded transaction: "${txData.name}"`);
     };
+
     const handleUpdateTransaction = (id, updated) => {
-        setTransactions(prev => prev.map(t => {
+        const next = transactions.map(t => {
             if (t.id === id) {
                 return { ...t, ...updated };
             }
             return t;
-        }));
+        });
+        setTransactions(next);
+        writeTransactions(next).catch(() => { });
         triggerToast('Updated transaction successfully.');
     };
+
     const handleUpdateBudget = (category, newLimit) => {
-        setBudgets(prev => prev.map(b => {
+        const next = budgets.map(b => {
             if (b.category === category) {
                 return { ...b, limit: newLimit };
             }
             return b;
-        }));
+        });
+        setBudgets(next);
+        writeBudgets(next).catch(() => { });
         triggerToast(`Re-configured budget cap for ${category} to ₹${newLimit}.`);
     };
+
     const handleAddBudget = (category, limit) => {
         const newBudget = {
             category,
@@ -220,9 +331,12 @@ export default function App() {
                 .filter(t => t.category === category && t.type === 'expense')
                 .reduce((sum, item) => sum + item.amount, 0)
         };
-        setBudgets(prev => [...prev, newBudget]);
+        const next = [...budgets, newBudget];
+        setBudgets(next);
+        writeBudgets(next).catch(() => { });
         triggerToast(`Initialized active budget boundaries for ${category}.`);
     };
+
     const handleAddCategory = (name, color, iconName) => {
         const newCatDef = {
             name,
@@ -230,10 +344,12 @@ export default function App() {
             bgLight: `bg-[${color}]/10 text-[${color}]`,
             iconName
         };
-        setCategories(prev => ({
-            ...prev,
+        const next = {
+            ...categories,
             [name]: newCatDef
-        }));
+        };
+        setCategories(next);
+        writeCategories(next).catch(() => { });
         triggerToast(`Registered new category classification: ${name}.`);
     };
     // Notification handles
@@ -426,17 +542,27 @@ export default function App() {
         </div>)}
 
       {/* Sidebar navigation */}
-      <Sidebar activeTab={activeTab} setActiveTab={(tab) => {
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={(tab) => {
             setActiveTab(tab);
             setIsMobileSidebarOpen(false);
-        }} onQuickAdd={() => {
+        }}
+        onQuickAdd={() => {
             setActiveTab('dashboard');
             setTimeout(() => {
                 const formElement = document.getElementById('form-add-expense');
                 if (formElement)
                     formElement.scrollIntoView({ behavior: 'smooth' });
             }, 150);
-        }} onOpenSupport={() => setShowSupportModal(true)} onOpenProfile={() => setShowProfileModal(true)} premiumStatus={isPremium} onUpgradePlan={() => setShowUpgradeModal(true)} onLogout={handleLogout}/>
+        }}
+        onOpenSupport={() => setShowSupportModal(true)}
+        onOpenProfile={() => setShowProfileModal(true)}
+        premiumStatus={isPremium}
+        onUpgradePlan={() => setShowUpgradeModal(true)}
+        onLogout={handleLogout}
+        profileName={profileName}
+      />
 
       {/* Mobile Drawer Sidebar Navigation */}
       {isMobileSidebarOpen && (<div className="lg:hidden fixed inset-0 z-50">

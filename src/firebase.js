@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAnalytics, isSupported } from 'firebase/analytics';
+import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyD0gkXlf14afN4EW5lUiyxSN6w2787G0Qk',
@@ -14,6 +15,9 @@ const firebaseConfig = {
 };
 
 export const firebaseApp = initializeApp(firebaseConfig);
+
+// Realtime Database (RTDB)
+export const db = getDatabase(firebaseApp);
 
 // Analytics only works in browser contexts (and may be blocked by extensions).
 export const analyticsPromise =
