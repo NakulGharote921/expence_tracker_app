@@ -204,10 +204,17 @@ npm run dev
 The app will run locally on:
 
 ```bash
-http://localhost:5173
+
 ```
 
 ---
+
+
+
+# 🌐 Live Demo
+
+🚀 Deployed Application:
+[Expense Tracker Live Demo](https://expence-tracker-app-gilt.vercel.app)
 
 # 🎯 Focus Areas
 
