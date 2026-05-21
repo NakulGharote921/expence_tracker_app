@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,450;0,600;0,700;1,400;1,600;1,700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", ui-serif, Georgia, serif;
+  
+  --color-primary: #F27D26;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #141414;
+  --color-on-primary-container: #F5F5F0;
+  
+  --color-secondary: #141414;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #E2E2D9;
+  --color-on-secondary-container: #141414;
+  
+  --color-tertiary: #F27D26;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #141414;
+  --color-on-tertiary-container: #F27D26;
+  
+  --color-background: #F5F5F0;
+  --color-on-background: #141414;
+  
+  --color-surface: #F5F5F0;
+  --color-on-surface: #141414;
+  --color-on-surface-variant: #5c5c56;
+  
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #EBEBE4;
+  --color-surface-container: #E2E2D9;
+  --color-surface-container-high: #D5D5CC;
+  --color-surface-container-highest: #C7C7BC;
+  
+  --color-outline: #8F8F85;
+  --color-outline-variant: #D5D5CC;
+  
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-outline-variant);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-outline);
+}
+
+.tonal-elevation {
+  box-shadow: 0 4px 30px rgba(20, 20, 20, 0.03);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
