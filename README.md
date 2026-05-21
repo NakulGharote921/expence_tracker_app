@@ -18,3 +18,4 @@ View your app in AI Studio: https://ai.studio/apps/63ba5993-0988-4764-8497-a2bca
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+"# expence_tracker_app" 
