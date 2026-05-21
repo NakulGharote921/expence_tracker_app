@@ -1,6 +1,0 @@
-- [ ] Update Sidebar to display dynamic profile name (remove hardcoded “Alex Morgan”)
-  - [ ] Accept `profileName` prop in `src/components/Sidebar.jsx`
-  - [ ] Replace displayed name text with `{profileName}`
-  - [ ] Replace avatar `alt="Alex Morgan"` with `alt={profileName}`
-- [ ] Pass `profileName` from `src/App.jsx` into `Sidebar`
-- [ ] Verify by running the app and confirming sidebar updates after login/profile save
