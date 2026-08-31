@@ -9,6 +9,7 @@ export default function ExpenseForm({ categories, onAddExpense }) {
     const [name, setName] = useState('');
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState(categories[0] || 'Food');
+    const [description, setDescription] = useState('');
     const [error, setError] = useState('');
 
     const handleSubmit = (e) => {
@@ -26,10 +27,11 @@ export default function ExpenseForm({ categories, onAddExpense }) {
             return;
         }
 
-        onAddExpense(name.trim(), parsedAmount, category);
+        onAddExpense(name.trim(), parsedAmount, category, description);
         setName('');
         setAmount('');
         setCategory(categories[0] || 'Food');
+        setDescription('');
     };
 
     return (
@@ -103,6 +105,23 @@ export default function ExpenseForm({ categories, onAddExpense }) {
                             <span className="text-[9px]">▼</span>
                         </div>
                     </div>
+                </div>
+
+                <div className="md:col-span-12">
+                    <label className="mb-1.5 block px-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-[#141414]/60">
+                        DESCRIPTION <span className="normal-case text-[#F27D26]">(OPTIONAL)</span>
+                    </label>
+                    <input
+                        type="text"
+                        value={description}
+                        onChange={(e) => {
+                            setDescription(e.target.value);
+                            if (error)
+                                setError('');
+                        }}
+                        className="h-[42px] w-full rounded-none border border-[#141414] bg-[#EBEBE4] px-3.5 text-xs font-semibold text-[#141414] outline-none transition-all placeholder:text-[#141414]/40 focus:bg-white"
+                        placeholder="e.g., Lunch with client at Blue Door Cafe"
+                    />
                 </div>
 
                 <div className="md:col-span-12 flex justify-end">

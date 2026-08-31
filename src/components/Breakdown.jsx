@@ -10,7 +10,7 @@ export default function Breakdown({ transactions, categories }) {
     const [showToast, setShowToast] = useState(false);
 
     const expensesOnly = transactions.filter((t) => t.type === 'expense');
-    const totalExpenseINR = expensesOnly.reduce((acc, curr) => acc + curr.amount, 0);
+    const totalNewExpenses = expensesOnly.reduce((acc, curr) => acc + curr.amount, 0);
 
     const categoryTotals = Object.keys(categories).reduce((acc, catName) => {
         acc[catName] = 0;
@@ -28,11 +28,12 @@ export default function Breakdown({ transactions, categories }) {
     const breakdownList = Object.keys(categories)
         .map((catName) => {
             const amount = categoryTotals[catName] || 0;
-            const percentage = totalExpenseINR > 0 ? (amount / totalExpenseINR) * 100 : 0;
+            const categoryPercentage = totalNewExpenses > 0 ? (amount / totalNewExpenses) * 100 : 0;
+            const safePercentage = Number.isFinite(categoryPercentage) ? categoryPercentage : 0;
             return {
                 category: catName,
                 amount,
-                percentage,
+                percentage: safePercentage,
                 meta: categories[catName] || INITIAL_CATEGORIES.Other,
             };
         })
@@ -40,7 +41,7 @@ export default function Breakdown({ transactions, categories }) {
 
     const handleDownloadCSV = () => {
         try {
-            const csvHeaders = ['Transaction ID', 'Name', 'Amount (INR)', 'Category', 'Date', 'Type'];
+            const csvHeaders = ['Transaction ID', 'Name', 'Amount (INR)', 'Category', 'Date', 'Type', 'Description'];
             const csvRows = transactions.map((t) => [
                 t.id,
                 `"${t.name.replace(/"/g, '""')}"`,
@@ -48,6 +49,7 @@ export default function Breakdown({ transactions, categories }) {
                 t.category,
                 t.date,
                 t.type,
+                `"${(t.description || '').replace(/"/g, '""')}"`,
             ]);
             const csvContent = [csvHeaders, ...csvRows].map((row) => row.join(',')).join('\n');
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -68,11 +70,24 @@ export default function Breakdown({ transactions, categories }) {
     return (
         <section id="section-breakdown" className="relative flex h-full flex-col justify-between overflow-x-hidden rounded-none border border-[#141414] bg-white p-3 sm:p-4 md:p-6 transition-all hover:shadow-[4px_4px_0px_0px_#141414]">
             <div>
-                <div className="mb-5 flex items-center justify-between gap-3 md:mb-6">
-                    <h2 className="font-serif text-xl italic font-semibold text-[#141414] md:text-2xl xl:text-3xl">Allocation Analysis</h2>
-                    <PieChart className="h-4 w-4 text-[#F27D26]"/>
+                <div className="mb-2 flex items-center justify-between gap-3 md:mb-3">
+                    <div>
+                        <h2 className="font-serif text-xl italic font-semibold text-[#141414] md:text-2xl xl:text-3xl">Allocation Analysis</h2>
+                        <p className="mt-1 font-mono text-[9px] font-bold uppercase tracking-widest text-[#F27D26]">Category Share of New Expenses</p>
+                    </div>
+                    <div className="group relative shrink-0">
+                        <PieChart className="h-4 w-4 text-[#F27D26]"/>
+                        <span className="pointer-events-none absolute right-0 top-5 z-10 hidden w-44 rounded-none border border-[#141414] bg-[#F5F5F0] px-3 py-2 text-left font-mono text-[9px] leading-relaxed text-[#141414] shadow-[3px_3px_0px_0px_#141414] group-hover:block">
+                            Shows how your new expenses are distributed across categories.
+                        </span>
+                    </div>
                 </div>
 
+                {totalNewExpenses === 0 ? (
+                    <p id="breakdown-empty-state" className="py-8 text-center font-mono text-[11px] font-semibold uppercase tracking-widest text-[#141414]/50">
+                        No expenses recorded yet.
+                    </p>
+                ) : (
                 <div className="space-y-4" id="breakdown-bars-container">
                     {breakdownList.map(({ category, amount, percentage, meta }) => {
                         const barPercentage = Math.max(0.5, percentage);
@@ -84,7 +99,7 @@ export default function Breakdown({ transactions, categories }) {
                                         {category}
                                     </span>
                                     <span className="text-left font-mono text-[10px] font-bold text-[#141414]/70 sm:text-right sm:text-[11px]">
-                                        Rs{amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / {Math.round(percentage)}%
+                                        Rs{amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / {percentage.toFixed(1)}%
                                     </span>
                                 </div>
 
@@ -98,6 +113,8 @@ export default function Breakdown({ transactions, categories }) {
                         );
                     })}
                 </div>
+                )
+                }
             </div>
 
             <div className="relative mt-8 border-t border-[#141414]/10 pt-4">

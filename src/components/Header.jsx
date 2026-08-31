@@ -4,7 +4,8 @@
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, Settings, Menu } from 'lucide-react';
-export default function Header({ notifications, markAsRead, clearNotifications, onOpenSettings, onOpenProfile, onToggleMobileSidebar }) {
+import Avatar from './Avatar';
+export default function Header({ notifications, markAsRead, clearNotifications, onOpenSettings, onOpenProfile, onToggleMobileSidebar, profileName, profilePhoto }) {
     const [showNotifications, setShowNotifications] = useState(false);
     const notificationRef = useRef(null);
     const unreadCount = notifications.filter(n => !n.read).length;
@@ -77,9 +78,9 @@ export default function Header({ notifications, markAsRead, clearNotifications, 
         {/* Divider */}
         <div className="h-6 w-[1.5px] bg-[#141414]/20 mx-1"></div>
 
-        {/* Personal initials block */}
-        <button id="btn-profile-avatar" onClick={onOpenProfile} className="w-8 h-8 rounded-full bg-[#141414] hover:bg-[#F27D26] text-white font-mono text-[10px] tracking-widest flex items-center justify-center transition-all hover:scale-105 active:scale-95">
-          AM
+        {/* Personal initials/avatar block */}
+        <button id="btn-profile-avatar" onClick={onOpenProfile} className="hover:scale-105 active:scale-95 transition-all cursor-pointer">
+          <Avatar photoURL={profilePhoto} name={profileName} className="w-8 h-8 text-[10px] hover:bg-[#F27D26] border-[#141414]"/>
         </button>
       </div>
     </header>);

@@ -19,12 +19,14 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
     const [newCat, setNewCat] = useState(Object.keys(categories)[0] || 'Food');
     const [newType, setNewType] = useState('expense');
     const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
+    const [newDescription, setNewDescription] = useState('');
     // Edit dialogue state
     const [editingId, setEditingId] = useState(null);
     const [editName, setEditName] = useState('');
     const [editAmount, setEditAmount] = useState('');
     const [editCat, setEditCat] = useState('');
     const [editDate, setEditDate] = useState('');
+    const [editDescription, setEditDescription] = useState('');
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8;
@@ -101,11 +103,13 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
             amount: parsedAmt,
             category: newCat,
             date: newDate,
-            type: newType
+            type: newType,
+            description: newDescription.trim() || undefined
         });
         // Reset
         setNewName('');
         setNewAmount('');
+        setNewDescription('');
         setShowAddForm(false);
         setCurrentPage(1);
     };
@@ -115,6 +119,7 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
         setEditAmount(tx.amount.toString());
         setEditCat(tx.category);
         setEditDate(tx.date);
+        setEditDescription(tx.description || '');
     };
     const saveInlineEdit = (id) => {
         const amt = parseFloat(editAmount);
@@ -124,7 +129,8 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
             name: editName.trim(),
             amount: amt,
             category: editCat,
-            date: editDate
+            date: editDate,
+            description: editDescription.trim() || undefined
         });
         setEditingId(null);
     };
@@ -133,10 +139,10 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
         const targets = selectedRowIds.length > 0
             ? transactions.filter(t => selectedRowIds.includes(t.id))
             : transactions;
-        const csvHeaders = ['ID', 'Name', 'Amount', 'Category', 'Date', 'Type'];
+        const csvHeaders = ['ID', 'Name', 'Amount', 'Category', 'Date', 'Type', 'Description'];
         const csvContent = [
             csvHeaders,
-            ...targets.map(t => [t.id, `"${t.name}"`, t.amount, t.category, t.date, t.type])
+            ...targets.map(t => [t.id, `"${t.name}"`, t.amount, t.category, t.date, t.type, `"${t.description || ''}"`])
         ].map(r => r.join(',')).join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
@@ -214,6 +220,11 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
             </div>
           </div>
 
+          <div>
+            <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5 px-0.5">Description <span className="normal-case text-[#F27D26]">(OPTIONAL)</span></label>
+            <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="Any additional details about this ledger entry..." className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white rounded-none py-2 px-3 text-xs font-semibold outline-none transition-all placeholder:text-[#141414]/30"/>
+          </div>
+
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowAddForm(false)} className="text-xs font-mono font-bold text-[#141414]/60 hover:text-[#141414] py-1.5 px-4 rounded-none transition-all cursor-pointer border border-transparent hover:border-[#141414]/10 bg-transparent">
               [CANCEL]
@@ -287,13 +298,14 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
                     <ArrowUpDown className="w-3 h-3 text-[#141414]"/>
                   </div>
                 </th>
+                <th className="p-3 border-r border-[#141414]/10 uppercase font-mono">Description</th>
                 <th className="p-3 uppercase font-mono text-center">Actions</th>
               </tr>
             </thead>
             
             <tbody className="divide-y divide-[#141414]/10 font-medium">
               {paginatedList.length === 0 ? (<tr>
-                  <td colSpan={6} className="p-12 text-center text-[#141414]/60">
+                  <td colSpan={7} className="p-12 text-center text-[#141414]/60">
                     <div className="flex flex-col items-center justify-center space-y-2">
                        <FileText className="w-10 h-10 text-[#141414]/40"/>
                        <p className="font-serif text-lg italic font-bold text-[#141414]">No ledger entries</p>
@@ -342,6 +354,11 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
                       {/* Date column */}
                       <td className="p-3 border-r border-[#141414]/10 text-[#141414]/70 font-mono">
                         {isEditing ? (<input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="bg-[#EBEBE4] border border-[#141414] text-xs rounded-none px-2 py-1 outline-none text-[#141414] font-mono font-bold"/>) : (formatDate(tx.date))}
+                      </td>
+
+                      {/* Description column */}
+                      <td className="p-3 border-r border-[#141414]/10">
+                        {isEditing ? (<input type="text" value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Optional notes..." className="bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none px-2 py-1 outline-none w-56"/>) : (tx.description ? (<span className="text-[11px] font-medium text-[#141414]/70 leading-snug">{tx.description}</span>) : (<span className="text-[#141414]/25">—</span>))}
                       </td>
 
                       {/* Action buttons */}
@@ -397,6 +414,7 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
                             </select>
                           </div>
                           <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="bg-[#EBEBE4] border border-[#141414] text-[11px] rounded-none px-1.5 py-1 outline-none text-[#141414] font-mono font-bold w-full"/>
+                          <input type="text" value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Description (optional)" className="bg-[#EBEBE4] focus:bg-white border border-[#141414] text-[11px] font-semibold rounded-none px-1.5 py-1 outline-none w-full"/>
                         </div>) : (<div className="min-w-0">
                           <p className="font-bold text-[13px] uppercase tracking-wide text-[#141414] break-words">{tx.name}</p>
                           <div className="flex flex-wrap items-center gap-1.5 mt-1">
@@ -405,6 +423,7 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
                             </span>
                             <span className="text-[10px] text-[#141414]/50 font-mono">{formatDate(tx.date)}</span>
                           </div>
+                          {tx.description && (<p className="mt-1 text-[11px] font-medium text-[#141414]/70 leading-snug break-words">{tx.description}</p>)}
                         </div>)}
                     </div>
 

@@ -17,9 +17,12 @@ import BudgetsTab from './components/BudgetsTab';
 import CategoriesTab from './components/CategoriesTab';
 import ReportsTab from './components/ReportsTab';
 import LoginPage from './components/LoginPage';
+import SetupPage from './components/SetupPage';
+import ProfileModal from './components/ProfileModal';
 import { INITIAL_CATEGORIES, INITIAL_TRANSACTIONS, INITIAL_BUDGETS, MOCK_NOTIFICATIONS } from './mockData';
-import { db } from './firebase';
-import { onValue, off, ref, set } from 'firebase/database';
+import { db, auth, signOut } from './firebase';
+import { onValue, off, ref, set, remove } from 'firebase/database';
+import { onAuthStateChanged } from 'firebase/auth';
 export default function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
     // App dynamic state databases
@@ -48,6 +51,18 @@ export default function App() {
         await set(cRef, nextCategories);
     };
 
+    const writeTargetBudget = async (value) => {
+        if (!userKey)
+            return;
+        await set(ref(db, `users/${userKey}/targetBudget`), value);
+    };
+
+    const writeProfile = async (profileData) => {
+        if (!userKey)
+            return;
+        await set(ref(db, `users/${userKey}/profile`), profileData);
+    };
+
     const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
     const [categories, setCategories] = useState(INITIAL_CATEGORIES);
     const [budgets, setBudgets] = useState(INITIAL_BUDGETS);
@@ -74,9 +89,28 @@ export default function App() {
         setUserKey(key);
     }, []);
 
+    // Keep the authenticated Firebase user's photo and name as source of truth.
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                if (user.photoURL) {
+                    setProfilePhoto(user.photoURL);
+                    localStorage.setItem('wf_profile_photo', user.photoURL);
+                }
+                if (user.displayName) {
+                    setProfileName(user.displayName);
+                    localStorage.setItem('wf_profile_name', user.displayName);
+                }
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
     const transactionsPath = userKey ? `users/${userKey}/transactions` : null;
     const budgetsPath = userKey ? `users/${userKey}/budgets` : null;
     const categoriesPath = userKey ? `users/${userKey}/categories` : null;
+    const targetBudgetPath = userKey ? `users/${userKey}/targetBudget` : null;
+    const profilePath = userKey ? `users/${userKey}/profile` : null;
 
     // Subscribe to RTDB state changes and seed initial data if empty.
     useEffect(() => {
@@ -85,6 +119,11 @@ export default function App() {
         const txRef = ref(db, transactionsPath);
         const bRef = ref(db, budgetsPath);
         const cRef = ref(db, categoriesPath);
+        const tbRef = ref(db, targetBudgetPath);
+        const pfRef = ref(db, profilePath);
+
+        // One-time cleanup: starting expenditure is no longer persisted to Firebase.
+        remove(ref(db, `users/${userKey}/startingExpenditure`)).catch(() => {});
 
         let seededTx = false;
         let seededBudgets = false;
@@ -130,6 +169,32 @@ export default function App() {
                 }
                 setCategories(val);
             }),
+            onValue(tbRef, (snap) => {
+                const val = snap.val();
+                if (typeof val === 'number' && !isNaN(val)) {
+                    setTotalBudgetLimit(val);
+                    setNewTotalBudgetVal(val.toString());
+                    localStorage.setItem('wf_total_budget_limit', val.toString());
+                }
+            }),
+            onValue(pfRef, (snap) => {
+                const val = snap.val();
+                if (val && typeof val === 'object') {
+                    if (val.name) {
+                        setProfileName(val.name);
+                        setProfileEditedName(val.name);
+                        localStorage.setItem('wf_profile_name', val.name);
+                    }
+                    if (val.phone !== undefined) {
+                        setProfilePhone(val.phone);
+                        localStorage.setItem('wf_profile_phone', val.phone);
+                    }
+                    if (val.currency) {
+                        setProfileCurrency(val.currency);
+                        localStorage.setItem('wf_profile_currency', val.currency);
+                    }
+                }
+            }),
         ];
 
         setIsRtdbReady(true);
@@ -142,13 +207,19 @@ export default function App() {
                 } catch (_) { }
             });
         };
-    }, [userKey, transactionsPath, budgetsPath, categoriesPath]);
+    }, [userKey, transactionsPath, budgetsPath, categoriesPath, targetBudgetPath, profilePath]);
     // Profile preferences & Login state
     const [isLoggedIn, setIsLoggedIn] = useState(() => {
         return localStorage.getItem('wf_is_logged_in') === 'true';
     });
+    const [showSetup, setShowSetup] = useState(() => {
+        return localStorage.getItem('wf_is_logged_in') === 'true' && !localStorage.getItem('wf_total_budget_limit');
+    });
     const [profileName, setProfileName] = useState(() => {
         return localStorage.getItem('wf_profile_name') || 'Alex Morgan';
+    });
+    const [profilePhoto, setProfilePhoto] = useState(() => {
+        return localStorage.getItem('wf_profile_photo') || null;
     });
     const [isPremium, setIsPremium] = useState(() => {
         return localStorage.getItem('wf_is_premium') !== 'false'; // defaults to true
@@ -161,16 +232,13 @@ export default function App() {
         }
         return INITIAL_BUDGETS.reduce((acc, b) => acc + b.limit, 0);
     });
-    const [isEditingTotalBudget, setIsEditingTotalBudget] = useState(false);
     const [newTotalBudgetVal, setNewTotalBudgetVal] = useState(() => {
         const storedVal = localStorage.getItem('wf_total_budget_limit');
         if (storedVal)
             return storedVal;
         return INITIAL_BUDGETS.reduce((acc, b) => acc + b.limit, 0).toString();
     });
-    // Dynamic aggregate cost/starting expenditure editing state
-    const [isEditingAggregateCost, setIsEditingAggregateCost] = useState(false);
-    const [newAggregateCostVal, setNewAggregateCostVal] = useState('12450.80');
+    const [isEditingTotalBudget, setIsEditingTotalBudget] = useState(false);
     // Modal open controllers
     const [showSupportModal, setShowSupportModal] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -184,6 +252,12 @@ export default function App() {
     });
     const [profileEditedName, setProfileEditedName] = useState(() => {
         return localStorage.getItem('wf_profile_name') || 'Alex Morgan';
+    });
+    const [profilePhone, setProfilePhone] = useState(() => {
+        return localStorage.getItem('wf_profile_phone') || '';
+    });
+    const [profileCurrency, setProfileCurrency] = useState(() => {
+        return localStorage.getItem('wf_profile_currency') || 'INR';
     });
     const [settingsLayoutTheme, setSettingsLayoutTheme] = useState('Light');
     // Success message feedback
@@ -242,12 +316,13 @@ export default function App() {
         }
     }, [transactions, budgets, notifications]);
     // Actions handlers
-    const handleAddExpense = (name, amount, category) => {
+    const handleAddExpense = (name, amount, category, description) => {
         const newTx = {
             id: `tx-${Date.now()}`,
             name,
             amount,
             category,
+            description: (description || '').trim() || undefined,
             date: new Date().toISOString().split('T')[0],
             type: 'expense'
         };
@@ -373,75 +448,57 @@ export default function App() {
         setSupportText('');
         setShowSupportModal(false);
     };
-    // Profile save changes
-    const handleProfileSave = (e) => {
-        e.preventDefault();
-        setProfileName(profileEditedName);
-        localStorage.setItem('wf_profile_name', profileEditedName);
-        setShowProfileModal(false);
-        triggerToast('Profile updated!');
-    };
-    const handleLogin = (name, email, premiumStatus, budgetAmount, startingExpenditure) => {
+    const handleLogin = (name, email, premiumStatus, budgetAmount, startingExpenditure, photo, extra, phone, currency) => {
         localStorage.setItem('wf_is_logged_in', 'true');
         localStorage.setItem('wf_profile_name', name);
         localStorage.setItem('wf_profile_email', email);
         localStorage.setItem('wf_is_premium', premiumStatus ? 'true' : 'false');
+        if (phone) {
+            localStorage.setItem('wf_profile_phone', phone);
+            setProfilePhone(phone);
+        }
+        if (currency) {
+            localStorage.setItem('wf_profile_currency', currency);
+            setProfileCurrency(currency);
+        }
+        if (photo) {
+            localStorage.setItem('wf_profile_photo', photo);
+            setProfilePhoto(photo);
+        }
         setIsLoggedIn(true);
+        setShowSetup(true);
         setProfileName(name);
         setProfileEditedName(name);
         setSupportEmail(email);
         setIsPremium(premiumStatus);
-        if (startingExpenditure !== undefined && startingExpenditure >= 0) {
-            const baseTotal = 12450.80;
-            const factor = startingExpenditure / baseTotal;
-            const scaledTx = INITIAL_TRANSACTIONS.map(t => {
-                if (t.type === 'expense') {
-                    return {
-                        ...t,
-                        amount: parseFloat((t.amount * factor).toFixed(2))
-                    };
-                }
-                return t;
-            });
-            // Adjust rounding discrepancy to make it sum EXACTLY to startingExpenditure
-            const expenseIndices = scaledTx
-                .map((t, idx) => ({ t, idx }))
-                .filter(item => item.t.type === 'expense');
-            if (expenseIndices.length > 0) {
-                const currentSum = expenseIndices.reduce((acc, item) => acc + item.t.amount, 0);
-                const discrepancy = startingExpenditure - currentSum;
-                if (Math.abs(discrepancy) > 0.001) {
-                    let largestItem = expenseIndices[0];
-                    for (let i = 1; i < expenseIndices.length; i++) {
-                        if (expenseIndices[i].t.amount > largestItem.t.amount) {
-                            largestItem = expenseIndices[i];
-                        }
-                    }
-                    scaledTx[largestItem.idx].amount = parseFloat((scaledTx[largestItem.idx].amount + discrepancy).toFixed(2));
-                }
-            }
-            setTransactions(scaledTx);
-            localStorage.setItem('wf_transactions', JSON.stringify(scaledTx));
-        }
-        else {
-            setTransactions(INITIAL_TRANSACTIONS);
-            localStorage.setItem('wf_transactions', JSON.stringify(INITIAL_TRANSACTIONS));
-        }
+        writeProfile({
+            name,
+            phone: phone || profilePhone || '',
+            currency: currency || profileCurrency || 'INR',
+        }).catch(() => {});
+        applyFinancialSetup(budgetAmount, name);
+    };
+    const applyFinancialSetup = (budgetAmount, name) => {
+        setTransactions(INITIAL_TRANSACTIONS);
+        localStorage.setItem('wf_transactions', JSON.stringify(INITIAL_TRANSACTIONS));
         if (budgetAmount && budgetAmount > 0) {
             localStorage.setItem('wf_total_budget_limit', budgetAmount.toString());
             setTotalBudgetLimit(budgetAmount);
             setNewTotalBudgetVal(budgetAmount.toString());
-            const count = budgets.length || 1;
-            const splitLimit = Math.round(budgetAmount / count);
-            setBudgets(budgets.map(b => ({
-                ...b,
-                limit: splitLimit
-            })));
+            writeTargetBudget(budgetAmount).catch(() => {});
             triggerToast(`Welcome, ${name}. Target monthly budget established: ₹${budgetAmount.toLocaleString()}`);
         }
         else {
             triggerToast(`Welcome, ${name}. Secure ledger compiled.`);
         }
+    };
+    const handleSetupSubmit = (budget) => {
+        applyFinancialSetup(budget, profileName || 'User');
+        setShowSetup(false);
+    };
+    const handleSetupSkip = () => {
+        setShowSetup(false);
+        triggerToast('Financial parameters can be configured anytime from the dashboard.');
     };
     const handleLogout = () => {
         localStorage.removeItem('wf_is_logged_in');
@@ -451,87 +508,47 @@ export default function App() {
         localStorage.removeItem('wf_total_budget_limit');
         localStorage.removeItem('wf_transactions');
         localStorage.removeItem('wf_budgets');
+        localStorage.removeItem('wf_profile_photo');
+        localStorage.removeItem('wf_profile_phone');
+        localStorage.removeItem('wf_profile_currency');
         setIsLoggedIn(false);
+        setProfilePhoto(null);
         setTransactions(INITIAL_TRANSACTIONS);
         setBudgets(INITIAL_BUDGETS);
+        signOut(auth).catch(() => {});
         triggerToast('Logged out of secure ledger.');
     };
     const handleUpdateTotalBudgetSubmit = (e) => {
         e.preventDefault();
         const limitNum = parseFloat(newTotalBudgetVal);
-        if (!isNaN(limitNum) && limitNum > 0) {
-            setTotalBudgetLimit(limitNum);
-            localStorage.setItem('wf_total_budget_limit', limitNum.toString());
-            // Divide target amount across existing budget categories equally
-            const count = budgets.length || 1;
-            const splitLimit = Math.round(limitNum / count);
-            setBudgets(budgets.map(b => ({
-                ...b,
-                limit: splitLimit
-            })));
-            setIsEditingTotalBudget(false);
-            triggerToast(`Aggregate budget target updated to ₹${limitNum.toLocaleString()}`);
+        if (isNaN(limitNum) || limitNum <= 0) {
+            triggerToast('Target budget must be a positive number.');
+            return;
         }
-    };
-    const handleUpdateAggregateCostSubmit = (e) => {
-        e.preventDefault();
-        const costNum = parseFloat(newAggregateCostVal);
-        if (!isNaN(costNum) && costNum >= 0) {
-            const currentTotal = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
-            if (currentTotal > 0) {
-                const factor = costNum / currentTotal;
-                const updatedTransactions = transactions.map(t => {
-                    if (t.type === 'expense') {
-                        return {
-                            ...t,
-                            amount: parseFloat((t.amount * factor).toFixed(2))
-                        };
-                    }
-                    return t;
-                });
-                // Adjust rounding discrepancy to make it sum EXACTLY to costNum
-                const expenseIndices = updatedTransactions
-                    .map((t, idx) => ({ t, idx }))
-                    .filter(item => item.t.type === 'expense');
-                if (expenseIndices.length > 0) {
-                    const currentSum = expenseIndices.reduce((acc, item) => acc + item.t.amount, 0);
-                    const discrepancy = costNum - currentSum;
-                    if (Math.abs(discrepancy) > 0.001) {
-                        let largestItem = expenseIndices[0];
-                        for (let i = 1; i < expenseIndices.length; i++) {
-                            if (expenseIndices[i].t.amount > largestItem.t.amount) {
-                                largestItem = expenseIndices[i];
-                            }
-                        }
-                        updatedTransactions[largestItem.idx].amount = parseFloat((updatedTransactions[largestItem.idx].amount + discrepancy).toFixed(2));
-                    }
-                }
-                setTransactions(updatedTransactions);
-                localStorage.setItem('wf_transactions', JSON.stringify(updatedTransactions));
-                triggerToast(`Aggregate cost re-established to ₹${costNum.toLocaleString()}`);
-            }
-            else {
-                const newTx = {
-                    id: `tx-${Date.now()}`,
-                    name: 'Starting Ledger Balance Set',
-                    amount: costNum,
-                    category: 'Other',
-                    date: new Date().toISOString().split('T')[0],
-                    type: 'expense'
-                };
-                setTransactions([newTx]);
-                localStorage.setItem('wf_transactions', JSON.stringify([newTx]));
-                triggerToast(`Starting expenditure established: ₹${costNum.toLocaleString()}`);
-            }
-            setIsEditingAggregateCost(false);
-        }
+        setTotalBudgetLimit(limitNum);
+        localStorage.setItem('wf_total_budget_limit', limitNum.toString());
+        writeTargetBudget(limitNum).catch(() => {});
+        // Divide target amount across existing budget categories equally
+        const count = budgets.length || 1;
+        const splitLimit = Math.round(limitNum / count);
+        setBudgets(budgets.map(b => ({
+            ...b,
+            limit: splitLimit
+        })));
+        setIsEditingTotalBudget(false);
+        triggerToast(`Target budget updated to ₹${limitNum.toLocaleString('en-IN')}`);
     };
     // Active numerical calculators
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
     const totalExpensesAmount = expenseTransactions.reduce((acc, curr) => acc + curr.amount, 0);
+    const aggregateCost = totalExpensesAmount;
+    const budgetSpentPct = totalBudgetLimit > 0 ? (aggregateCost / totalBudgetLimit) * 100 : 0;
     // Search filter across the dashboard list
     if (!isLoggedIn) {
         return <LoginPage onLogin={handleLogin}/>;
+    }
+    if (showSetup) {
+        return <SetupPage profileName={profileName} onSubmit={handleSetupSubmit} onSkip={handleSetupSkip}/>;
     }
     return (<div className="bg-[#F5F5F0] text-[#141414] min-h-screen relative flex w-full max-w-full font-sans select-none overflow-x-clip">
       
@@ -562,6 +579,7 @@ export default function App() {
         onUpgradePlan={() => setShowUpgradeModal(true)}
         onLogout={handleLogout}
         profileName={profileName}
+        profilePhoto={profilePhoto}
       />
 
       {/* Mobile Drawer Sidebar Navigation */}
@@ -631,7 +649,7 @@ export default function App() {
       <main className="flex-1 min-w-0 w-full lg:ml-[260px] min-h-screen flex flex-col overflow-x-hidden">
         
         {/* Sticky Header */}
-        <Header notifications={notifications} markAsRead={handleMarkAsRead} clearNotifications={handleClearNotifications} onOpenSettings={() => setShowSettingsModal(true)} onOpenProfile={() => setShowProfileModal(true)} onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}/>
+        <Header notifications={notifications} markAsRead={handleMarkAsRead} clearNotifications={handleClearNotifications} onOpenSettings={() => setShowSettingsModal(true)} onOpenProfile={() => setShowProfileModal(true)} onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)} profileName={profileName} profilePhoto={profilePhoto}/>
 
         {/* Dynamic Inner Panel based on active tab state */}
         <div className="p-3 sm:p-4 md:p-6 xl:p-8 flex-1 max-w-7xl w-full mx-auto overflow-x-hidden" id="main-scrollable-panel">
@@ -648,93 +666,67 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
                 
                 {/* Total Expense Card */}
-                <div className="bg-white p-3 sm:p-4 md:p-6 rounded-none border border-[#141414] hover:shadow-[4px_4px_0px_0px_#141414] transition-all flex flex-col justify-between h-full overflow-hidden">
+                <div className="bg-white p-3 sm:p-4 md:p-6 rounded-none border border-[#141414] transition-all flex flex-col justify-between h-full overflow-hidden">
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <span onClick={() => {
-                setNewAggregateCostVal(totalExpensesAmount.toFixed(2));
-                setIsEditingAggregateCost(true);
-            }} title="Click to re-establish Aggregate Cost" className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-[#141414]/60 hover:text-[#F27D26] transition-colors cursor-pointer flex items-center gap-1.5 group select-none">
+                      <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-[#141414]/60 flex items-center gap-1.5 select-none">
                         AGGREGATE COST
-                        <Edit2 className="w-2.5 h-2.5 text-[#141414]/40 group-hover:text-[#F27D26] transition-colors opacity-0 group-hover:opacity-100 shrink-0"/>
                       </span>
                       <TrendingDown className="w-4 h-4 text-[#F27D26]"/>
                     </div>
                     
-                    {isEditingAggregateCost ? (<form onSubmit={handleUpdateAggregateCostSubmit} className="mb-4 pb-3.5 border-b border-[#141414]/15 space-y-2">
-                        <label className="block text-[9px] font-mono font-bold text-[#141414]/60 uppercase tracking-wider px-0.5">
-                          RE-ESTABLISH AGGREGATE COST
-                        </label>
-                        <div className="flex flex-col gap-1.5 sm:flex-row">
-                          <div className="relative flex-1">
-                            <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-[#141414]/50 font-mono text-[11px] font-bold">
-                              ₹
-                            </span>
-                            <input type="number" step="0.01" value={newAggregateCostVal} onChange={(e) => setNewAggregateCostVal(e.target.value)} className="w-full bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none pl-6 pr-1.5 py-1 outline-none font-mono text-[#141414]" required min="0"/>
-                          </div>
-                          <button type="submit" className="bg-[#141414] text-white hover:bg-[#F27D26] border border-[#141414] px-3 font-mono text-[10px] uppercase font-bold tracking-wider rounded-none shrink-0 cursor-pointer">
-                            Save
-                          </button>
-                          <button type="button" onClick={() => {
-                    setIsEditingAggregateCost(false);
-                }} className="bg-[#EBEBE4] hover:bg-[#D1C6B4] border border-[#141414] px-2.5 font-mono text-[10px] uppercase font-bold tracking-wider rounded-none shrink-0 cursor-pointer">
-                            Cancel
-                          </button>
-                        </div>
-                      </form>) : (<span onClick={() => {
-                    setNewAggregateCostVal(totalExpensesAmount.toFixed(2));
-                    setIsEditingAggregateCost(true);
-                }} title="Click to re-establish Aggregate Cost" className="font-serif text-2xl min-[380px]:text-3xl sm:text-4xl italic font-bold text-[#141414] leading-tight break-all hover:text-[#F27D26] hover:bg-slate-100/60 p-1 -m-1 transition-all cursor-pointer flex items-center gap-1 w-fit group select-none">
-                        ₹{totalExpensesAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        <Edit2 className="w-4 h-4 text-[#141414]/20 group-hover:text-[#F27D26] transition-all opacity-0 group-hover:opacity-100 shrink-0 ml-1.5"/>
-                      </span>)}
-
-                    {/* Overall Target Budget Limit & Live Update Form */}
-                    {isEditingTotalBudget ? (<form onSubmit={handleUpdateTotalBudgetSubmit} className="mt-4 pt-3.5 border-t border-[#141414]/15 space-y-2">
-                        <label className="block text-[9px] font-mono font-bold text-[#141414]/60 uppercase tracking-wider px-0.5">
-                          RE-ESTABLISH TARGET BUDGET
-                        </label>
-                        <div className="flex flex-col gap-1.5 sm:flex-row">
-                          <div className="relative flex-1">
-                            <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-[#141414]/50 font-mono text-[11px] font-bold">
-                              ₹
-                            </span>
-                            <input type="number" value={newTotalBudgetVal} onChange={(e) => setNewTotalBudgetVal(e.target.value)} className="w-full bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none pl-6 pr-1.5 py-1 outline-none font-mono text-[#141414]" required min="1"/>
-                          </div>
-                          <button type="submit" className="bg-[#141414] text-white hover:bg-[#F27D26] border border-[#141414] px-3 font-mono text-[10px] uppercase font-bold tracking-wider rounded-none shrink-0 cursor-pointer">
-                            Save
-                          </button>
-                          <button type="button" onClick={() => {
-                    setIsEditingTotalBudget(false);
-                    setNewTotalBudgetVal(totalBudgetLimit.toString());
-                }} className="bg-[#EBEBE4] hover:bg-[#D1C6B4] border border-[#141414] px-2.5 font-mono text-[10px] uppercase font-bold tracking-wider rounded-none shrink-0 cursor-pointer">
-                            Cancel
-                          </button>
-                        </div>
-                      </form>) : (<div className="mt-4 pt-3.5 border-t border-[#141414]/15">
+                    <span className="font-serif text-2xl min-[380px]:text-3xl sm:text-4xl italic font-bold text-[#141414] leading-tight break-all flex items-center gap-1 w-fit select-none">
+                        ₹{totalExpensesAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    <p className="text-[9px] font-mono uppercase tracking-wider text-[#141414]/45 mt-1">
+                      Net expense cost
+                    </p>
+                    {/* Overall Target Budget Limit & Live Update Display */}
+                    <div className="mt-4 pt-3.5 border-t border-[#141414]/15">
                         <div className="flex items-center justify-between text-[10px] font-mono font-bold text-[#141414]/60 uppercase tracking-[0.1em]">
                           <span>TARGET LIMIT</span>
-                          <button onClick={() => {
+                          {isEditingTotalBudget ? (<span className="text-[#F27D26] font-bold uppercase text-[9px]">EDITING</span>) : (<button onClick={() => {
                     setNewTotalBudgetVal(totalBudgetLimit.toString());
                     setIsEditingTotalBudget(true);
                 }} className="text-[#F27D26] hover:underline cursor-pointer font-bold uppercase py-0.5 px-1 bg-[#F27D26]/10 border border-[#F27D26]/20 text-[9px]">
                             [Edit Target]
-                          </button>
+                          </button>)}
                         </div>
-                        <div className="font-serif text-lg italic font-bold text-[#141414] mt-1 flex items-baseline justify-between gap-2 flex-wrap">
-                          <span>₹{totalBudgetLimit.toLocaleString()}</span>
-                          <span className="text-[9px] font-mono not-italic uppercase tracking-wider text-[#141414]/50">
-                            {Math.round((totalExpensesAmount / totalBudgetLimit) * 100)}% Spent
-                          </span>
-                        </div>
-                        <div className="w-full bg-[#EBEBE4] border border-[#141414] p-0.5 h-3 mt-1.5 rounded-none overflow-hidden flex items-center">
-                          <div className={`h-1.5 rounded-none transition-all duration-500 ease-out ${(totalExpensesAmount / totalBudgetLimit) >= 0.95
+
+                        {isEditingTotalBudget ? (<form onSubmit={handleUpdateTotalBudgetSubmit} className="mt-2 space-y-2">
+                            <div className="flex flex-col gap-1.5 sm:flex-row">
+                              <div className="relative flex-1">
+                                <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-[#141414]/50 font-mono text-[11px] font-bold">
+                                  ₹
+                                </span>
+                                <input type="number" min="1" value={newTotalBudgetVal} onChange={(e) => setNewTotalBudgetVal(e.target.value)} className="w-full bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none pl-6 pr-1.5 py-1 outline-none font-mono text-[#141414]" required/>
+                              </div>
+                              <button type="submit" className="bg-[#141414] text-white hover:bg-[#F27D26] border border-[#141414] px-3 font-mono text-[10px] uppercase font-bold tracking-wider rounded-none shrink-0 cursor-pointer">
+                                Save
+                              </button>
+                              <button type="button" onClick={() => {
+                    setIsEditingTotalBudget(false);
+                    setNewTotalBudgetVal(totalBudgetLimit.toString());
+                }} className="bg-[#EBEBE4] hover:bg-[#D1C6B4] border border-[#141414] px-2.5 font-mono text-[10px] uppercase font-bold tracking-wider rounded-none shrink-0 cursor-pointer">
+                                Cancel
+                              </button>
+                            </div>
+                          </form>) : (<>
+                          <div className="font-serif text-lg italic font-bold text-[#141414] mt-1 flex items-baseline justify-between gap-2 flex-wrap">
+                            <span>₹{totalBudgetLimit.toLocaleString('en-IN')}</span>
+                            <span className="text-[9px] font-mono not-italic uppercase tracking-wider text-[#141414]/50">
+                              {budgetSpentPct.toFixed(1)}% Spent
+                            </span>
+                          </div>
+                          <div className="w-full bg-[#EBEBE4] border border-[#141414] p-0.5 h-3 mt-1.5 rounded-none overflow-hidden flex items-center">
+                            <div className={`h-1.5 rounded-none transition-all duration-500 ease-out ${budgetSpentPct >= 95
                     ? 'bg-red-650 animate-pulse'
-                    : (totalExpensesAmount / totalBudgetLimit) >= 0.8
+                    : budgetSpentPct >= 80
                         ? 'bg-[#F27D26]'
-                        : 'bg-[#16a34a]'}`} style={{ width: `${Math.min(100, Math.round((totalExpensesAmount / totalBudgetLimit) * 100))}%` }}/>
-                        </div>
-                      </div>)}
+                        : 'bg-[#16a34a]'}`} style={{ width: `${Math.min(100, Math.round(budgetSpentPct))}%` }}/>
+                          </div>
+                        </>)}
+                    </div>
                   </div>
                   <p className="text-[10px] font-mono uppercase tracking-wider font-bold text-red-605 flex items-center mt-6">
                     <TrendingUp className="w-3.5 h-3.5 mr-1 shrink-0 text-red-650"/>
@@ -895,52 +887,40 @@ export default function App() {
           </div>
         </div>)}
 
-      {/* User Profile Overlay Dialog */}
-      {showProfileModal && (<div className="fixed inset-0 bg-on-background/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <form onSubmit={handleProfileSave} className="bg-surface-container-lowest border border-outline-variant rounded-[24px] max-w-sm w-full p-6 space-y-4 shadow-2xl relative animate-scale-up">
-            <button type="button" onClick={() => setShowProfileModal(false)} className="absolute top-4 right-4 text-outline hover:text-on-surface hover:bg-surface-container p-1 rounded-full transition-all">
-              <X className="w-5 h-5"/>
-            </button>
-
-            <div className="flex items-center gap-2 text-primary font-bold">
-              <User className="w-5 h-5"/>
-              <span className="text-sm font-sans tracking-tight">Modify User Credentials</span>
-            </div>
-
-            {/* Avatar mock */}
-            <div className="flex items-center justify-center py-2">
-              <div className="relative group">
-                <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-primary/20">
-                  <img alt="Alex Morgan" className="w-full h-full object-cover" referrerPolicy="no-referrer" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBULAx8DIXqalKeGttF9Tr8qB6KfKOyNnYY6czPiNjuztmJmCAp_6L7kszqOLr_bXi6wHnUUrc293St_WMDqwvMjgiP9SiKNQ7bbFflUxqBQ6G1XqElOL1jiHOZHjCjXcrVf8vi_ga8DGPbIoyxzyZl--dbwD6FSUJljH_RcPYO9hvwDPCUKcYIw2mz4BymItd5isOlCRy5c1IQYswgR38DO9nFW-rbevufI-DSq0wKHbKcbKzIik6Nv6QDDgl1TquwAZfXpYa6ufbs"/>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-outline mb-1 uppercase">Profile Name Display</label>
-              <input type="text" value={profileEditedName} onChange={e => setProfileEditedName(e.target.value)} className="w-full bg-surface-container-low border border-outline focus:border-primary text-xs rounded-xl py-2 px-3 outline-none text-on-surface font-semibold" required/>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold text-outline mb-1 uppercase">Assigned Plan Status</label>
-              <div className="flex justify-between items-center bg-surface-container-low p-2.5 rounded-xl border border-outline-variant/60 text-[11px] font-bold">
-                <span>{isPremium ? 'Premium Standard' : 'Free Demo Tier'}</span>
-                <span className="text-primary hover:underline cursor-pointer text-[10px]" onClick={() => { setShowProfileModal(false); setShowUpgradeModal(true); }}>
-                  Adjust Plan
-                </span>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 text-xs">
-              <button type="button" onClick={() => setShowProfileModal(false)} className="py-2 px-4 rounded-xl hover:bg-surface-container font-semibold transition-all">
-                Cancel
-              </button>
-              <button type="submit" className="bg-primary text-on-primary font-bold py-2 px-5 rounded-xl hover:bg-primary-container shadow transition-all flex items-center gap-1">
-                <Save className="w-3.5 h-3.5"/> Save display
-              </button>
-            </div>
-          </form>
-        </div>)}
+      {/* Profile & Account Modal */}
+      <ProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        profileName={profileName}
+        profilePhoto={profilePhoto}
+        profilePhone={profilePhone}
+        profileCurrency={profileCurrency}
+        isPremium={isPremium}
+        email={supportEmail}
+        userKey={userKey}
+        targetBudget={totalBudgetLimit}
+        onTargetBudgetChange={(val) => {
+          setTotalBudgetLimit(val);
+          setNewTotalBudgetVal(val.toString());
+          localStorage.setItem('wf_total_budget_limit', val.toString());
+        }}
+        onSave={async (name, phone, currency) => {
+          setProfileName(name);
+          setProfileEditedName(name);
+          setProfilePhone(phone);
+          setProfileCurrency(currency);
+          localStorage.setItem('wf_profile_name', name);
+          localStorage.setItem('wf_profile_phone', phone);
+          localStorage.setItem('wf_profile_currency', currency);
+          try {
+            await writeProfile({ name, phone, currency });
+          } catch (_) {}
+        }}
+        onLogout={handleLogout}
+        triggerToast={triggerToast}
+        writeTargetBudget={writeTargetBudget}
+        onOpenUpgrade={() => setShowUpgradeModal(true)}
+      />
 
       {/* Upgrade Plan Overlay Dialog */}
       {showUpgradeModal && (<div className="fixed inset-0 bg-on-background/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">

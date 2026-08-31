@@ -3,7 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState } from 'react';
-import { Lock, Mail, User, ArrowRight, Eye, EyeOff, Check, AlertCircle } from 'lucide-react';
+import { Lock, Mail, User, ArrowRight, Eye, EyeOff, Check, AlertCircle, Globe, Phone } from 'lucide-react';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
+
+const CURRENCY_OPTIONS = [
+    { code: 'INR', label: 'INR — Indian Rupee', symbol: '₹' },
+    { code: 'USD', label: 'USD — US Dollar', symbol: '$' },
+    { code: 'EUR', label: 'EUR — Euro', symbol: '€' },
+    { code: 'GBP', label: 'GBP — British Pound', symbol: '£' },
+    { code: 'JPY', label: 'JPY — Japanese Yen', symbol: '¥' },
+];
+
 export default function LoginPage({ onLogin }) {
     const [activeTab, setActiveTab] = useState('signin');
     // Sign in states
@@ -14,12 +25,17 @@ export default function LoginPage({ onLogin }) {
     const [signUpEmail, setSignUpEmail] = useState('');
     const [signUpPassword, setSignUpPassword] = useState('');
     const [signUpPremium, setSignUpPremium] = useState(true);
+    const [signUpPhone, setSignUpPhone] = useState('');
+    const [signUpCurrency, setSignUpCurrency] = useState('INR');
+    // Google completion states
+    const [googleCompletion, setGoogleCompletion] = useState(null);
+    const [completionPhone, setCompletionPhone] = useState('');
+    const [completionCurrency, setCompletionCurrency] = useState('INR');
     // Common UI states
     const [showPassword, setShowPassword] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [budgetAmount, setBudgetAmount] = useState('15000');
-    const [startingCost, setStartingCost] = useState('12450.80');
+
     const handleSignInSubmit = (e) => {
         e.preventDefault();
         if (!email || !password) {
@@ -32,13 +48,13 @@ export default function LoginPage({ onLogin }) {
         }
         setIsSubmitting(true);
         setErrorMsg('');
-        // Simulate clean authentication validation
         setTimeout(() => {
             const finalName = email.split('@')[0];
-            onLogin(finalName, email, true, parseFloat(budgetAmount), parseFloat(startingCost));
+            onLogin(finalName, email, true);
             setIsSubmitting(false);
         }, 850);
     };
+
     const handleSignUpSubmit = (e) => {
         e.preventDefault();
         if (!signUpName || !signUpEmail || !signUpPassword) {
@@ -52,9 +68,37 @@ export default function LoginPage({ onLogin }) {
         setIsSubmitting(true);
         setErrorMsg('');
         setTimeout(() => {
-            onLogin(signUpName, signUpEmail, signUpPremium, parseFloat(budgetAmount), parseFloat(startingCost));
+            onLogin(signUpName, signUpEmail, signUpPremium, undefined, undefined, undefined, undefined, signUpPhone, signUpCurrency);
             setIsSubmitting(false);
         }, 950);
+    };
+
+    const handleGoogleSignIn = async () => {
+        setErrorMsg('');
+        setIsSubmitting(true);
+        try {
+            const result = await signInWithPopup(auth, googleProvider);
+            const user = result.user;
+            const name = user.displayName || user.email.split('@')[0];
+            setGoogleCompletion({ name, email: user.email, photo: user.photoURL || null });
+        } catch (err) {
+            if (err && err.code !== 'auth/popup-closed-by-user') {
+                setErrorMsg(err.message || 'Google authentication failed. Please try again.');
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleCompletionSubmit = (e) => {
+        e.preventDefault();
+        const { name, email: gEmail, photo } = googleCompletion;
+        setIsSubmitting(true);
+        setErrorMsg('');
+        setTimeout(() => {
+            onLogin(name, gEmail, true, undefined, undefined, photo, undefined, completionPhone, completionCurrency);
+            setIsSubmitting(false);
+        }, 600);
     };
     return (<div className="min-h-screen bg-[#F5F5F0] text-[#141414] flex flex-col items-center justify-center p-4 select-none font-sans relative overflow-hidden">
       
@@ -109,7 +153,55 @@ export default function LoginPage({ onLogin }) {
           </div>)}
 
         {/* Dynamic active screen options */}
-        {activeTab === 'signin' ? (<form onSubmit={handleSignInSubmit} className="space-y-4">
+        {googleCompletion ? (
+          /* Google Login Completion — Add Mobile & Currency */
+          <form onSubmit={handleCompletionSubmit} className="space-y-4">
+            <div className="text-center pb-3 border-b border-[#141414]/10">
+              <p className="text-[10px] font-mono font-bold text-[#141414]/60 uppercase tracking-wider">
+                Complete your profile
+              </p>
+              <p className="text-[11px] text-[#141414] font-semibold mt-1">
+                Welcome, {googleCompletion.name}
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-[9px] font-mono font-bold text-[#141414]/60 uppercase tracking-wider px-0.5">
+                MOBILE NUMBER <span className="text-[#F27D26]">(OPTIONAL)</span>
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#141414]/40">
+                  <Phone className="w-4 h-4"/>
+                </span>
+                <input type="tel" value={completionPhone} onChange={(e) => setCompletionPhone(e.target.value)} placeholder="e.g. +91 98765 43210" className="w-full bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none pl-9 pr-3.5 py-2.5 outline-none font-sans text-[#141414]"/>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-[9px] font-mono font-bold text-[#141414]/60 uppercase tracking-wider px-0.5">
+                SELECT CURRENCY <span className="text-[#F27D26]">(OPTIONAL)</span>
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#141414]/40">
+                  <Globe className="w-4 h-4"/>
+                </span>
+                <select value={completionCurrency} onChange={(e) => setCompletionCurrency(e.target.value)} className="w-full bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none pl-9 pr-3.5 py-2.5 outline-none font-sans text-[#141414] appearance-none cursor-pointer">
+                  {CURRENCY_OPTIONS.map(c => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" disabled={isSubmitting} className="w-full bg-[#141414] hover:bg-[#F27D26] text-white font-mono font-bold uppercase tracking-widest text-[11px] py-3 rounded-none shadow-sm active:scale-99 transition-all cursor-pointer flex items-center justify-center gap-2 border border-[#141414]">
+              {isSubmitting ? (<span>FINALIZING...</span>) : (<>
+                  <span>CONTINUE TO DASHBOARD</span>
+                  <ArrowRight className="w-4 h-4"/>
+                </>)}
+            </button>
+          </form>
+
+        ) : activeTab === 'signin' ? (<form onSubmit={handleSignInSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="block text-[9px] font-mono font-bold text-[#141414]/60 uppercase tracking-wider px-0.5">
                 VERIFIED EMAIL REGISTRY
@@ -185,27 +277,31 @@ export default function LoginPage({ onLogin }) {
               </div>
             </div>
 
-            <div className="space-y-1.5 pb-2">
+            <div className="space-y-1.5">
               <label className="block text-[9px] font-mono font-bold text-[#141414]/60 uppercase tracking-wider px-0.5">
-                ESTABLISH TARGET BUDGET AMOUNT (INR)
+                MOBILE NUMBER <span className="text-[#F27D26]">(OPTIONAL)</span>
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#141414]/50 font-mono text-[11px] font-bold">
-                  ₹
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#141414]/40">
+                  <Phone className="w-4 h-4"/>
                 </span>
-                <input type="number" value={budgetAmount} onChange={(e) => setBudgetAmount(e.target.value)} placeholder="e.g. 15000" className="w-full bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none pl-8 pr-3.5 py-2.5 outline-none font-mono text-[#141414]" min="1" required/>
+                <input type="tel" value={signUpPhone} onChange={(e) => setSignUpPhone(e.target.value)} placeholder="e.g. +91 98765 43210" className="w-full bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none pl-9 pr-3.5 py-2.5 outline-none font-sans text-[#141414]"/>
               </div>
             </div>
 
-            <div className="space-y-1.5 pb-2">
+            <div className="space-y-1.5">
               <label className="block text-[9px] font-mono font-bold text-[#141414]/60 uppercase tracking-wider px-0.5">
-                ESTABLISH STARTING EXPENDITURE / AGGREGATE COST (INR)
+                SELECT CURRENCY <span className="text-[#F27D26]">(OPTIONAL)</span>
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#141414]/50 font-mono text-[11px] font-bold">
-                  ₹
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#141414]/40">
+                  <Globe className="w-4 h-4"/>
                 </span>
-                <input type="number" step="0.01" value={startingCost} onChange={(e) => setStartingCost(e.target.value)} placeholder="e.g. 12450.80" className="w-full bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none pl-8 pr-3.5 py-2.5 outline-none font-mono text-[#141414]" min="0" required/>
+                <select value={signUpCurrency} onChange={(e) => setSignUpCurrency(e.target.value)} className="w-full bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none pl-9 pr-3.5 py-2.5 outline-none font-sans text-[#141414] appearance-none cursor-pointer">
+                  {CURRENCY_OPTIONS.map(c => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -226,6 +322,23 @@ export default function LoginPage({ onLogin }) {
                 </>)}
             </button>
           </form>)}
+
+        {/* Google OAuth Divider */}
+        <div className="flex items-center gap-3 my-5">
+          <div className="flex-1 h-px bg-[#141414]/15"/>
+          <span className="text-[9px] font-mono font-bold text-[#141414]/50 uppercase tracking-widest">or continue with</span>
+          <div className="flex-1 h-px bg-[#141414]/15"/>
+        </div>
+
+        <button type="button" onClick={handleGoogleSignIn} disabled={isSubmitting} className="w-full border-2 border-[#141414] bg-white hover:bg-[#F5F5F0] text-[#141414] font-mono font-bold uppercase tracking-widest text-[11px] py-3 rounded-none transition-all cursor-pointer flex items-center justify-center gap-2.5 shadow-[4px_4px_0px_0px_#141414] hover:shadow-[2px_2px_0px_0px_#141414] active:scale-99">
+          <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/>
+            <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 18.9 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+            <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
+            <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.1 5.6l6.2 5.2C36.9 40.2 44 35 44 24c0-1.3-.1-2.6-.4-3.9z"/>
+          </svg>
+          {isSubmitting ? <span>CONTACTING GOOGLE...</span> : <span>SIGN IN WITH GOOGLE</span>}
+        </button>
 
         {false && (<div className="mt-6 pt-5 border-t border-[#141414]/10 bg-[#EBEBE4]/30 -mx-6 -mb-6 p-6">
           <p className="text-[9px] font-mono font-bold text-[#141414]/60 uppercase tracking-wider mb-3 px-0.5">

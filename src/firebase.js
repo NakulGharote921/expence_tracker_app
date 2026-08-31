@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import { getDatabase } from 'firebase/database';
+import { getAuth, GoogleAuthProvider, signOut } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyD0gkXlf14afN4EW5lUiyxSN6w2787G0Qk',
@@ -18,6 +19,11 @@ export const firebaseApp = initializeApp(firebaseConfig);
 
 // Realtime Database (RTDB)
 export const db = getDatabase(firebaseApp);
+
+// Authentication (Google Sign-In)
+export const auth = getAuth(firebaseApp);
+export const googleProvider = new GoogleAuthProvider();
+export { signOut };
 
 // Analytics only works in browser contexts (and may be blocked by extensions).
 export const analyticsPromise =
