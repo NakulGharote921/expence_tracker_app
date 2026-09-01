@@ -11,9 +11,6 @@ const __dirname = path.dirname(__filename);
 export default defineConfig(() => ({
   plugins: [react(), tailwindcss()],
   resolve: {
-    // Force browser-first resolution for packages like Firebase that publish
-    // separate Node and browser entry points via conditional exports.
-    conditions: ['browser', 'module', 'import', 'default'],
     alias: {
       '@': path.resolve(__dirname, '.'),
     },
