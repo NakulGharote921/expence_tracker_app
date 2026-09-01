@@ -19,7 +19,6 @@ export default function AuthSuccess() {
         (async () => {
             try {
                 await account.createSession({ userId, secret });
-                localStorage.setItem('wf_is_logged_in', 'true');
                 window.location.assign(`${window.location.origin}/dashboard`);
             } catch (err) {
                 setError(err?.message || 'Could not complete sign in.');

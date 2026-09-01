@@ -21,12 +21,10 @@ import { INITIAL_CATEGORIES, INITIAL_TRANSACTIONS, INITIAL_BUDGETS, MOCK_NOTIFIC
 import { useAuth } from '../lib/appwrite/AuthProvider';
 import { account } from '../lib/appwrite/client';
 import { loadUserData, saveUserData, getOrCreateProfile, updateProfile, appwriteErrorMessage, logAppwriteError, TABLE_USER_PROFILES } from '../lib/appwrite/db';
-import { useNavigate } from 'react-router-dom';
 
 // Module-scope throttle so rapid autosave failures don't spam the error banner.
 let lastAppwriteErrorToastAt = 0;
 export default function DashboardPage() {
-    const navigate = useNavigate();
     const { user, signOut, authStatus, logoutGeneration } = useAuth();
     const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -66,7 +64,6 @@ export default function DashboardPage() {
     // Seed profile from the authenticated Appwrite user on mount.
     useEffect(() => {
         if (!user) return;
-        localStorage.setItem('wf_is_logged_in', 'true');
         const displayName = user.name || user.email || '';
         if (displayName) {
             if (!localStorage.getItem('wf_profile_name')) {
@@ -113,10 +110,7 @@ export default function DashboardPage() {
         } catch (_) {}
     };
 
-    // Profile preferences & Login state
-    const [isLoggedIn, setIsLoggedIn] = useState(() => {
-        return localStorage.getItem('wf_is_logged_in') === 'true';
-    });
+    // Profile preferences
     const [profileName, setProfileName] = useState(() => {
         return localStorage.getItem('wf_profile_name') || 'Alex Morgan';
     });
@@ -152,11 +146,13 @@ export default function DashboardPage() {
     const hydrateGenerationRef = useRef(0);
 
     // Appwrite TablesDB data layer: hydrate from (or seed) the user's rows once on mount.
+    // Uses the CURRENT user from AuthProvider — never stale state.
     const userId = user?.$id || null;
 
     useEffect(() => {
         if (!userId) return;
         if (authStatus === 'logging_out') return;
+        console.log('[DATA] Loading data for user:', userId);
         hydrateGenerationRef.current += 1;
         const gen = hydrateGenerationRef.current;
         let cancelled = false;
@@ -216,21 +212,24 @@ export default function DashboardPage() {
                 profileCurrency: (loadData && loadData.profileCurrency) || profileCurrency || 'INR',
                 totalBudgetLimit: (loadData && loadData.totalBudgetLimit) || totalBudgetLimit || 0,
             }).catch((err) => logAppwriteError('ensureProfile', TABLE_USER_PROFILES, err));
-            if (!cancelled && gen === hydrateGenerationRef.current) setLoaded(true);
+            if (!cancelled && gen === hydrateGenerationRef.current) {
+                console.log('[DATA] Hydrate complete for user:', userId);
+                setLoaded(true);
+            }
         })();
         return () => { cancelled = true; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId, authStatus]);
 
     // Persist data to the Appwrite tables whenever it changes (after initial load).
-    // Guard: NEVER sync until loadUserData has hydrated cloud data — the loaded
-    // flag must be true, otherwise empty initial React state can wipe real rows.
+    // Guards: loaded must be true (hydration done), not logging out.
     useEffect(() => {
         if (!userId || loggingOutRef.current) return;
         if (!loaded) return;
         const t = setTimeout(async () => {
             if (loggingOutRef.current) return;
             try {
+                console.log('[DATA] Persisting data for user:', userId);
                 await saveUserData(userId, {
                     transactions,
                     budgets,
@@ -467,20 +466,20 @@ export default function DashboardPage() {
     };
     const handleLogout = async () => {
         loggingOutRef.current = true;
-        await signOut();
-        localStorage.removeItem('wf_is_logged_in');
-        localStorage.removeItem('wf_profile_name');
-        localStorage.removeItem('wf_profile_email');
-        localStorage.removeItem('wf_is_premium');
-        localStorage.removeItem('wf_total_budget_limit');
-        localStorage.removeItem('wf_transactions');
-        localStorage.removeItem('wf_budgets');
-        localStorage.removeItem('wf_profile_photo');
-        localStorage.removeItem('wf_profile_phone');
-        localStorage.removeItem('wf_profile_currency');
-        setIsLoggedIn(false);
+        // Clear frontend state — do NOT delete any Appwrite database rows.
+        setTransactions([]);
+        setBudgets([]);
+        setCategories({});
+        setTotalBudgetLimit(0);
+        setProfileName('Alex Morgan');
+        setProfileEditedName('Alex Morgan');
         setProfilePhoto(null);
-        navigate('/auth');
+        setProfileCurrency('INR');
+        setSupportEmail('');
+        setLoaded(false);
+        await signOut();
+        // Full page reload to clear all React state and re-initialize cleanly.
+        window.location.href = `${window.location.origin}/auth`;
     };
     const handleUpdateTotalBudgetSubmit = (e) => {
         e.preventDefault();
