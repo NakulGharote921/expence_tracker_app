@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useMemo, useState } from 'react';
-import { TrendingUp, IndianRupee, CalendarCheck, Layers } from 'lucide-react';
+import { TrendingUp, IndianRupee, CalendarCheck, Layers, CreditCard } from 'lucide-react';
+import { PAYMENT_METHODS } from '../mockData';
+
 export default function ReportsTab({ transactions, categories }) {
     const [activeChart, setActiveChart] = useState('category');
     // Compute metric calculations
@@ -47,6 +49,27 @@ export default function ReportsTab({ transactions, categories }) {
         const maxFromData = categoryBarData.reduce((m, c) => Math.max(m, c.amount), 0);
         return Math.max(maxFromData, 1000);
     }, [categoryBarData]);
+
+    // Payment Method Breakdown (expense transactions only)
+    const paymentMethodTotals = useMemo(() => {
+        const totals = {};
+        PAYMENT_METHODS.forEach(m => { totals[m] = 0; });
+        expenses.forEach(e => {
+            const method = e.paymentMethod || '';
+            if (method && totals[method] !== undefined) {
+                totals[method] += e.amount;
+            }
+        });
+        return totals;
+    }, [expenses]);
+
+    const paymentMethodBreakdown = useMemo(() => {
+        return PAYMENT_METHODS.map(method => {
+            const amount = paymentMethodTotals[method] || 0;
+            const percentage = totalExpense > 0 ? (amount / totalExpense) * 100 : 0;
+            return { method, amount, percentage };
+        }).sort((a, b) => b.amount - a.amount);
+    }, [paymentMethodTotals, totalExpense]);
     const clampBarHeightPct = (value) => {
         const barHeight = categoryMaxVal > 0 ? (value / categoryMaxVal) * 100 : 0;
         return Math.max(3, barHeight);
@@ -340,6 +363,52 @@ export default function ReportsTab({ transactions, categories }) {
               </svg>
             </div>
           </div>)}
+      </div>
+
+      {/* Payment Method Breakdown */}
+      <div className="bg-white p-6 rounded-none border border-[#141414] hover:shadow-[4px_4px_0px_0px_#141414] transition-all">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6 border-b border-[#141414]/10 pb-4">
+          <div>
+            <h3 className="text-xs font-mono font-bold text-[#141414] uppercase tracking-wider flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-[#F27D26]"/>
+              PAYMENT METHOD BREAKDOWN
+            </h3>
+            <p className="text-[8px] font-mono text-[#141414]/40 mt-1">
+              Total Expense: ₹{totalExpense.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+            </p>
+          </div>
+        </div>
+
+        {totalExpense === 0 ? (
+          <p className="py-8 text-center font-mono text-[11px] font-semibold uppercase tracking-widest text-[#141414]/50">
+            No expense data available.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {paymentMethodBreakdown.map(({ method, amount, percentage }) => {
+              const barPercentage = Math.max(0.5, percentage);
+              return (
+                <div key={method}>
+                  <div className="mb-1.5 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                    <span className="flex min-w-0 items-center gap-2 break-words text-[11px] font-bold uppercase tracking-wider text-[#141414]">
+                      <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-none border border-[#141414] bg-[#F27D26]"/>
+                      {method}
+                    </span>
+                    <span className="text-left font-mono text-[10px] font-bold text-[#141414]/70 sm:text-right sm:text-[11px]">
+                      ₹{amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / {percentage.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="h-2.5 w-full overflow-hidden rounded-none border border-[#141414]/15 bg-[#EBEBE4]">
+                    <div
+                      className="h-full rounded-none transition-all duration-500 ease-out bg-[#F27D26]"
+                      style={{ width: `${barPercentage}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
     </div>);

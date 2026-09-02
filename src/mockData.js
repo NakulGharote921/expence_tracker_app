@@ -36,6 +36,8 @@ export const INITIAL_CATEGORIES = {
     },
 };
 
+export const PAYMENT_METHODS = ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Bank Transfer'];
+
 export const INITIAL_TRANSACTIONS = [];
 
 export const INITIAL_BUDGETS = [];

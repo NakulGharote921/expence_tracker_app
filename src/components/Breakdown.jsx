@@ -41,7 +41,7 @@ export default function Breakdown({ transactions, categories }) {
 
     const handleDownloadCSV = () => {
         try {
-            const csvHeaders = ['Transaction ID', 'Name', 'Amount (INR)', 'Category', 'Date', 'Type', 'Description'];
+            const csvHeaders = ['Transaction ID', 'Name', 'Amount (INR)', 'Category', 'Date', 'Type', 'Payment Method', 'Description'];
             const csvRows = transactions.map((t) => [
                 t.id,
                 `"${t.name.replace(/"/g, '""')}"`,
@@ -49,6 +49,7 @@ export default function Breakdown({ transactions, categories }) {
                 t.category,
                 t.date,
                 t.type,
+                `"${(t.paymentMethod || '').replace(/"/g, '""')}"`,
                 `"${(t.description || '').replace(/"/g, '""')}"`,
             ]);
             const csvContent = [csvHeaders, ...csvRows].map((row) => row.join(',')).join('\n');

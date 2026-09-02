@@ -88,6 +88,10 @@ export default function ExpenseHistory({ transactions, categories, onDeleteTrans
                                             <span>{formatDate(tx.date)}</span>
                                             <span className="hidden sm:inline">•</span>
                                             <span className="font-bold underline decoration-[#F27D26] decoration-2">{tx.category}</span>
+                                            {tx.paymentMethod && (<>
+                                                <span className="hidden sm:inline">•</span>
+                                                <span className="font-bold text-[#141414]/80">{tx.paymentMethod}</span>
+                                            </>)}
                                         </div>
                                         {tx.description && (<p className="mt-1 break-words text-[11px] font-medium text-[#141414]/65 leading-snug">{tx.description}</p>)}
                                     </div>

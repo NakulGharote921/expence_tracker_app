@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Settings, Menu } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import Avatar from './Avatar';
-export default function Header({ notifications, markAsRead, clearNotifications, onOpenSettings, onOpenProfile, onToggleMobileSidebar, profileName, profilePhoto }) {
+export default function Header({ notifications, markAsRead, clearNotifications, onOpenProfile, onToggleMobileSidebar, profileName, profilePhoto }) {
     const [showNotifications, setShowNotifications] = useState(false);
     const notificationRef = useRef(null);
     const unreadCount = notifications.filter(n => !n.read).length;
@@ -69,14 +69,6 @@ export default function Header({ notifications, markAsRead, clearNotifications, 
               </div>
             </div>)}
         </div>
-
-        {/* Settings wheel */}
-        <button id="btn-settings" onClick={onOpenSettings} className="p-2 text-[#141414] hover:bg-[#141414] hover:text-white rounded-none border border-transparent hover:border-[#141414] transition-colors">
-          <Settings className="w-4 h-4"/>
-        </button>
-
-        {/* Divider */}
-        <div className="h-6 w-[1.5px] bg-[#141414]/20 mx-1"></div>
 
         {/* Personal initials/avatar block */}
         <button id="btn-profile-avatar" onClick={onOpenProfile} className="hover:scale-105 active:scale-95 transition-all cursor-pointer">

@@ -4,11 +4,13 @@
  */
 import React, { useState } from 'react';
 import { PlusCircle, AlertCircle } from 'lucide-react';
+import { PAYMENT_METHODS } from '../mockData';
 
 export default function ExpenseForm({ categories, onAddExpense }) {
     const [name, setName] = useState('');
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState(categories[0] || 'Food');
+    const [paymentMethod, setPaymentMethod] = useState('');
     const [description, setDescription] = useState('');
     const [error, setError] = useState('');
 
@@ -27,10 +29,16 @@ export default function ExpenseForm({ categories, onAddExpense }) {
             return;
         }
 
-        onAddExpense(name.trim(), parsedAmount, category, description);
+        if (!paymentMethod) {
+            setError('Please select a payment method.');
+            return;
+        }
+
+        onAddExpense(name.trim(), parsedAmount, category, description, paymentMethod);
         setName('');
         setAmount('');
         setCategory(categories[0] || 'Food');
+        setPaymentMethod('');
         setDescription('');
     };
 
@@ -107,7 +115,32 @@ export default function ExpenseForm({ categories, onAddExpense }) {
                     </div>
                 </div>
 
-                <div className="md:col-span-12">
+                <div className="md:col-span-6">
+                    <label className="mb-1.5 block px-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-[#141414]/60">
+                        PAYMENT METHOD
+                    </label>
+                    <div className="relative">
+                        <select
+                            value={paymentMethod}
+                            onChange={(e) => {
+                                setPaymentMethod(e.target.value);
+                                if (error)
+                                    setError('');
+                            }}
+                            className="h-[42px] w-full cursor-pointer appearance-none rounded-none border border-[#141414] bg-[#EBEBE4] pl-3.5 pr-10 text-xs font-bold uppercase tracking-wider text-[#141414] outline-none transition-all focus:bg-white"
+                        >
+                            <option value="">Select Payment Method</option>
+                            {PAYMENT_METHODS.map((m) => (
+                                <option key={m} value={m}>{m}</option>
+                            ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-[#141414]">
+                            <span className="text-[9px]">▼</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="md:col-span-6">
                     <label className="mb-1.5 block px-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-[#141414]/60">
                         DESCRIPTION <span className="normal-case text-[#F27D26]">(OPTIONAL)</span>
                     </label>

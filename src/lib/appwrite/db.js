@@ -60,6 +60,7 @@ export async function loadUserData(userId) {
             type: r.type || 'expense',
             description: r.description || undefined,
             date: r.transaction_date || '',
+            paymentMethod: r.paymentMethod || '',
         }));
 
         const budgets = (budgetRes.rows || []).map((r) => ({
@@ -226,6 +227,10 @@ export async function saveUserData(userId, data) {
 }
 
 async function rawSaveUserData(userId, data) {
+    // NOTE: paymentMethod is stored in React state + localStorage for UI display.
+    // To persist it to Appwrite, create the attribute in Appwrite Console:
+    //   Table: transactions → Attributes → Add String → name: paymentMethod
+    // Then uncomment the paymentMethod line below.
     const transactions = (data.transactions || []).map((tx) => ({
         user_id: userId,
         id: tx.id || '',
@@ -235,6 +240,7 @@ async function rawSaveUserData(userId, data) {
         type: tx.type || 'expense',
         description: tx.description || '',
         transaction_date: tx.date || new Date().toISOString().split('T')[0],
+        paymentMethod: tx.paymentMethod || '',
         created_at: new Date().toISOString(),
     }));
 

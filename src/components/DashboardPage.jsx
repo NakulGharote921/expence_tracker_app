@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { HelpCircle, X, Sparkles, TrendingUp, TrendingDown, History, CheckCircle, User, ShieldCheck, Save, LogOut, Edit2 } from 'lucide-react';
+import { HelpCircle, X, Sparkles, TrendingUp, TrendingDown, History, CheckCircle, User, Save, LogOut, Edit2 } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import CurrencyConverter from './CurrencyConverter';
@@ -250,7 +250,6 @@ export default function DashboardPage() {
 
     // Modal open controllers
     const [showSupportModal, setShowSupportModal] = useState(false);
-    const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -265,7 +264,6 @@ export default function DashboardPage() {
     const [profilePhone, setProfilePhone] = useState(() => {
         return localStorage.getItem('wf_profile_phone') || '';
     });
-    const [settingsLayoutTheme, setSettingsLayoutTheme] = useState('Light');
     // Success message feedback
     const [successToast, setSuccessToast] = useState('');
     // Appwrite error feedback (throttled so autosave failures don't spam)
@@ -332,7 +330,7 @@ export default function DashboardPage() {
         }
     }, [transactions, budgets, notifications]);
     // Actions handlers
-    const handleAddExpense = (name, amount, category, description) => {
+    const handleAddExpense = (name, amount, category, description, paymentMethod) => {
         const newTx = {
             id: `tx-${Date.now()}`,
             name,
@@ -340,7 +338,8 @@ export default function DashboardPage() {
             category,
             description: (description || '').trim() || undefined,
             date: new Date().toISOString().split('T')[0],
-            type: 'expense'
+            type: 'expense',
+            paymentMethod: paymentMethod || '',
         };
         const next = [newTx, ...transactions];
         setTransactions(next);
@@ -611,7 +610,7 @@ export default function DashboardPage() {
       <main className="flex-1 min-w-0 w-full lg:ml-[260px] min-h-screen flex flex-col overflow-x-hidden">
         
         {/* Sticky Header */}
-        <Header notifications={notifications} markAsRead={handleMarkAsRead} clearNotifications={handleClearNotifications} onOpenSettings={() => setShowSettingsModal(true)} onOpenProfile={() => setShowProfileModal(true)} onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)} profileName={profileName} profilePhoto={profilePhoto}/>
+        <Header notifications={notifications} markAsRead={handleMarkAsRead} clearNotifications={handleClearNotifications} onOpenProfile={() => setShowProfileModal(true)} onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)} profileName={profileName} profilePhoto={profilePhoto}/>
 
         {/* Dynamic Inner Panel based on active tab state */}
         <div className="p-3 sm:p-4 md:p-6 xl:p-8 flex-1 max-w-7xl w-full mx-auto overflow-x-hidden" id="main-scrollable-panel">
@@ -802,51 +801,6 @@ export default function DashboardPage() {
               </button>
             </div>
           </form>
-        </div>)}
-
-      {/* Settings Overlay Dialog */}
-      {showSettingsModal && (<div className="fixed inset-0 bg-on-background/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-[24px] max-w-sm w-full p-6 space-y-4 shadow-2xl relative animate-scale-up">
-            <button onClick={() => setShowSettingsModal(false)} className="absolute top-4 right-4 text-outline hover:text-on-surface hover:bg-surface-container p-1 rounded-full transition-all">
-              <X className="w-5 h-5"/>
-            </button>
-
-            <div className="flex items-center gap-2 text-primary font-bold">
-              <span className="w-2.5 h-2.5 rounded-full bg-primary"/>
-              <span className="text-sm font-sans tracking-tight">System Configuration Settings</span>
-            </div>
-
-            <div className="space-y-4 text-xs font-semibold">
-              <div>
-                <label className="block text-[10px] font-bold text-outline mb-1.5 uppercase">Applet Layout Scheme</label>
-                <div className="grid grid-cols-2 gap-2 bg-surface-container-low p-1 rounded-xl border border-outline-variant/60">
-                  <button onClick={() => setSettingsLayoutTheme('Light')} className={`py-1.5 rounded-lg font-bold text-center transition-all ${settingsLayoutTheme === 'Light' ? 'bg-white text-on-surface shadow-sm' : 'text-on-surface-variant'}`}>
-                    Light Slate Theme
-                  </button>
-                  <button onClick={() => {
-                setSettingsLayoutTheme('Dark');
-                triggerToast('Note: WealthFlow is locked to a high-contrast clean Light Slate theme for precision data-readability.');
-            }} className={`py-1.5 rounded-lg font-bold text-center transition-all ${settingsLayoutTheme === 'Dark' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant'}`}>
-                    Immersive Dark
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold text-outline mb-1.5 uppercase">Automatic Cloud Sync Status</label>
-                <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl flex items-center justify-between text-[11px]">
-                  <span className="font-bold flex items-center gap-1"><ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0"/> Local Database Active</span>
-                  <span className="font-bold opacity-80 uppercase text-[9px] tracking-wider bg-emerald-100 text-emerald-900 py-0.5 px-1 rounded">HEALTHY</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button onClick={() => setShowSettingsModal(false)} className="bg-primary hover:bg-primary-container text-on-primary px-5 py-2 rounded-xl text-xs font-bold transition-all">
-                Done
-              </button>
-            </div>
-          </div>
         </div>)}
 
       {/* Profile & Account Modal */}
