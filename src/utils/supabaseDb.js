@@ -136,7 +136,9 @@ export const supabaseDb = {
   signUpEmail: (email, password) => supabase.auth.signUp({ email, password }),
   signInGoogle: () => supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin + window.location.pathname },
+    options: {
+      redirectTo: import.meta.env.VITE_APP_URL || window.location.origin,
+    },
   }),
   signOut: () => supabase.auth.signOut(),
   onAuthStateChange: (cb) => supabase.auth.onAuthStateChange(cb),
