@@ -3,16 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Receipt, Wallet, Tags, BarChart3, Plus, HelpCircle, LogOut, UserPlus, ChevronRight, Repeat } from 'lucide-react';
 import Avatar from './Avatar';
-export default function Sidebar({ activeTab, setActiveTab, onQuickAdd, onOpenSupport, onOpenProfile, premiumStatus, onUpgradePlan, onLogout, profileName, profilePhoto }) {
+export default function Sidebar({ onQuickAdd, onOpenSupport, onOpenProfile, premiumStatus, onUpgradePlan, onLogout, profileName, profilePhoto }) {
     const menuItems = [
-        { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
-        { id: 'transactions', name: 'Transactions', icon: Receipt },
-        { id: 'subscriptions', name: 'Subscriptions', icon: Repeat },
-        { id: 'budgets', name: 'Budgets', icon: Wallet },
-        { id: 'categories', name: 'Categories', icon: Tags },
-        { id: 'reports', name: 'Reports', icon: BarChart3 },
+        { id: 'dashboard', to: '/dashboard', name: 'Dashboard', icon: LayoutDashboard },
+        { id: 'transactions', to: '/transactions', name: 'Transactions', icon: Receipt },
+        { id: 'subscriptions', to: '/subscriptions', name: 'Subscriptions', icon: Repeat },
+        { id: 'budgets', to: '/budgets', name: 'Budgets', icon: Wallet },
+        { id: 'categories', to: '/categories', name: 'Categories', icon: Tags },
+        { id: 'reports', to: '/reports', name: 'Reports', icon: BarChart3 },
     ];
     return (<aside id="sidebar-nav" className="hidden lg:flex fixed left-0 top-0 z-40 h-screen flex-col bg-[#F5F5F0] border-r border-[#141414] select-none transition-all lg:w-[260px] lg:px-6 lg:py-8">
       {/* Brand logo */}
@@ -43,16 +44,21 @@ export default function Sidebar({ activeTab, setActiveTab, onQuickAdd, onOpenSup
       <nav className="flex-1 space-y-1.5" id="nav-container">
         {menuItems.map((item) => {
             const IconComponent = item.icon;
-            const isActive = activeTab === item.id;
-            return (<button key={item.id} id={`nav-item-${item.id}`} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center justify-between rounded-none px-4 py-3 text-[11px] uppercase tracking-widest font-bold transition-all duration-150 ${isActive
+            return (<NavLink
+                key={item.id}
+                to={item.to}
+                id={`nav-item-${item.id}`}
+                className={({ isActive }) => `w-full flex items-center justify-between rounded-none px-4 py-3 text-[11px] uppercase tracking-widest font-bold transition-all duration-150 ${isActive
                     ? 'bg-[#141414] text-white border-l-4 border-[#F27D26]'
                     : 'text-[#141414]/70 hover:bg-[#141414]/10 hover:text-[#141414]'}`}>
-              <div className="flex items-center gap-3">
-                <IconComponent className="w-4 h-4 shrink-0"/>
-                <span>{item.name}</span>
-              </div>
-              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isActive ? 'translate-x-0.5 opacity-100 text-[#F27D26]' : 'opacity-0'}`}/>
-            </button>);
+              {({ isActive }) => (<>
+                <div className="flex items-center gap-3">
+                  <IconComponent className="w-4 h-4 shrink-0"/>
+                  <span>{item.name}</span>
+                </div>
+                <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isActive ? 'translate-x-0.5 opacity-100 text-[#F27D26]' : 'opacity-0'}`}/>
+              </>)}
+            </NavLink>);
         })}
       </nav>
 

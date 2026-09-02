@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { HelpCircle, X, Sparkles, TrendingUp, TrendingDown, History, CheckCircle, User, Save, LogOut, Edit2 } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -22,7 +23,9 @@ import { INITIAL_CATEGORIES, INITIAL_TRANSACTIONS, INITIAL_BUDGETS, MOCK_NOTIFIC
 import { supabaseDb } from '../utils/supabaseDb';
 
 export default function DashboardPage({ userId }) {
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const location = useLocation();
+    const navigate = useNavigate();
+    const activeTab = location.pathname.replace(/^\//, '') || 'dashboard';
     const [hydrated, setHydrated] = useState(false);
 
     // --- Data layer: Supabase persistence (per authenticated user) ---
@@ -370,9 +373,10 @@ export default function DashboardPage({ userId }) {
         setShowSupportModal(false);
     };
     const handleLogout = () => {
-        // Sign out of Supabase; App.jsx flips to the auth page on state change.
+        // Sign out of Supabase; the auth-state change flips routing to the login page.
         supabaseDb.signOut().catch(() => {});
         setHydrated(false);
+        navigate('/login', { replace: true });
     };
     const handleUpdateTotalBudgetSubmit = (e) => {
         e.preventDefault();
@@ -409,13 +413,8 @@ export default function DashboardPage({ userId }) {
 
       {/* Sidebar navigation */}
       <Sidebar
-        activeTab={activeTab}
-        setActiveTab={(tab) => {
-            setActiveTab(tab);
-            setIsMobileSidebarOpen(false);
-        }}
         onQuickAdd={() => {
-            setActiveTab('dashboard');
+            navigate('/dashboard');
             setTimeout(() => {
                 const formElement = document.getElementById('form-add-expense');
                 if (formElement)
@@ -454,13 +453,14 @@ export default function DashboardPage({ userId }) {
 
             <nav className="flex-1 space-y-1.5">
               {[
-                { id: 'dashboard', name: 'Dashboard' },
-                { id: 'transactions', name: 'Transactions' },
-                { id: 'budgets', name: 'Budgets' },
-                { id: 'categories', name: 'Categories' },
-                { id: 'reports', name: 'Reports' }
+                { id: 'dashboard', to: '/dashboard', name: 'Dashboard' },
+                { id: 'transactions', to: '/transactions', name: 'Transactions' },
+                { id: 'subscriptions', to: '/subscriptions', name: 'Subscriptions' },
+                { id: 'budgets', to: '/budgets', name: 'Budgets' },
+                { id: 'categories', to: '/categories', name: 'Categories' },
+                { id: 'reports', to: '/reports', name: 'Reports' }
             ].map(item => (<button key={item.id} onClick={() => {
-                    setActiveTab(item.id);
+                    navigate(item.to);
                     setIsMobileSidebarOpen(false);
                 }} className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest font-bold transition-all ${activeTab === item.id
                     ? 'bg-[#141414] text-white border-l-4 border-[#F27D26]'
@@ -621,7 +621,7 @@ export default function DashboardPage({ userId }) {
                 <div className="md:col-span-2 xl:col-span-2 space-y-4 sm:space-y-5 md:space-y-6">
                   <ExpenseForm categories={Object.keys(categories)} onAddExpense={handleAddExpense}/>
                   
-                  <ExpenseHistory transactions={transactions} categories={categories} onDeleteTransaction={handleDeleteTransaction} onViewAll={() => setActiveTab('transactions')}/>
+                  <ExpenseHistory transactions={transactions} categories={categories} onDeleteTransaction={handleDeleteTransaction} onViewAll={() => navigate('/transactions')}/>
                 </div>
 
                 {/* Right side analytics column */}

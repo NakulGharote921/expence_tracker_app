@@ -2,16 +2,22 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabaseDb } from '../utils/supabaseDb';
 
-export default function AuthPage() {
-    const [mode, setMode] = useState('signin');
+export default function AuthPage({ initialMode = 'signin' }) {
+    const navigate = useNavigate();
+    const [mode, setMode] = useState(initialMode);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        setMode(initialMode);
+    }, [initialMode]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -29,7 +35,8 @@ export default function AuthPage() {
             } else {
                 const { error } = await supabaseDb.signInEmail(email, password);
                 if (error) throw error;
-                // On success, the onAuthStateChange handler in App.jsx routes to the dashboard.
+                // On success, route to the dashboard immediately.
+                navigate('/dashboard');
             }
         } catch (err) {
             setError(err?.message || 'Something went wrong. Please try again.');

@@ -1,31 +1,17 @@
-import { useEffect, useState } from 'react';
-import { supabaseDb } from './utils/supabaseDb';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthPage from './components/AuthPage';
 import Dashboard from './pages/Dashboard';
+import ProtectedRoute from './routes/ProtectedRoute';
+import NotFound from './pages/NotFound';
 
-export default function App() {
-    const [session, setSession] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        let mounted = true;
-
-        supabaseDb.getSession().then(({ data }) => {
-            if (mounted) {
-                setSession(data.session);
-                setLoading(false);
-            }
-        });
-
-        const { data: subscription } = supabaseDb.onAuthStateChange((_event, currentSession) => {
-            if (mounted) setSession(currentSession);
-        });
-
-        return () => {
-            mounted = false;
-            subscription?.subscription?.unsubscribe?.();
-        };
-    }, []);
+function AppRoutes() {
+    const { session, loading } = useAuth();
+    const authenticated = Boolean(session);
 
     if (loading) {
         return (
@@ -35,5 +21,49 @@ export default function App() {
         );
     }
 
-    return session ? <Dashboard userId={session.user.id} /> : <AuthPage />;
+    return (
+        <Routes>
+            {authenticated ? (
+                <>
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/register" element={<Navigate to="/dashboard" replace />} />
+
+                    <Route element={<ProtectedRoute />}>
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/transactions" element={<Dashboard />} />
+                        <Route path="/subscriptions" element={<Dashboard />} />
+                        <Route path="/budgets" element={<Dashboard />} />
+                        <Route path="/categories" element={<Dashboard />} />
+                        <Route path="/reports" element={<Dashboard />} />
+                    </Route>
+
+                    <Route path="*" element={<NotFound />} />
+                </>
+            ) : (
+                <>
+                    <Route path="/" element={<Navigate to="/login" replace />} />
+                    <Route path="/login" element={<AuthPage initialMode="signin" />} />
+                    <Route path="/register" element={<AuthPage initialMode="signup" />} />
+
+                    <Route path="/dashboard" element={<Navigate to="/login" replace />} />
+                    <Route path="/transactions" element={<Navigate to="/login" replace />} />
+                    <Route path="/subscriptions" element={<Navigate to="/login" replace />} />
+                    <Route path="/budgets" element={<Navigate to="/login" replace />} />
+                    <Route path="/categories" element={<Navigate to="/login" replace />} />
+                    <Route path="/reports" element={<Navigate to="/login" replace />} />
+
+                    <Route path="*" element={<NotFound />} />
+                </>
+            )}
+        </Routes>
+    );
+}
+
+export default function App() {
+    return (
+        <AuthProvider>
+            <AppRoutes />
+        </AuthProvider>
+    );
 }
