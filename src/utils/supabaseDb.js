@@ -157,6 +157,8 @@ export const supabaseDb = {
   }),
   signOut: () => supabase.auth.signOut(),
   onAuthStateChange: (cb) => supabase.auth.onAuthStateChange(cb),
+  // Persist display/edit data to Supabase auth user metadata.
+  updateUserMeta: (meta) => supabase.auth.updateUser({ data: meta }),
 
   // ---- Transactions ----
   async hydrateTransactions(userId) {

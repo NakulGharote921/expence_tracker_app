@@ -19,13 +19,16 @@ import CategoriesTab from './CategoriesTab';
 import ReportsTab from './ReportsTab';
 import SubscriptionsTab from './SubscriptionsTab';
 import ProfileModal from './ProfileModal';
+import { getInitials } from './Avatar';
 import { INITIAL_CATEGORIES, INITIAL_TRANSACTIONS, INITIAL_BUDGETS } from '../mockData';
 import { supabaseDb } from '../utils/supabaseDb';
+import { useAuth } from '../context/AuthContext';
 
 export default function DashboardPage({ userId }) {
     const location = useLocation();
     const navigate = useNavigate();
     const activeTab = location.pathname.replace(/^\//, '') || 'dashboard';
+    const { email: authEmail, displayName: authName, avatarUrl: authAvatar, updateUser } = useAuth();
     const [hydrated, setHydrated] = useState(false);
 
     // --- Data layer: Supabase persistence (per authenticated user) ---
@@ -38,9 +41,9 @@ export default function DashboardPage({ userId }) {
     const [notifError, setNotifError] = useState(null);
     const notifChannelRef = useRef(null);
 
-    // Profile preferences (hydrated from Supabase on mount)
-    const [profileName, setProfileName] = useState('Alex Morgan');
-    const [profilePhoto, setProfilePhoto] = useState(null);
+    // Profile preferences (hydrated from the authenticated Supabase user + profiles table)
+    const [profileName, setProfileName] = useState(authName || '');
+    const [profilePhoto, setProfilePhoto] = useState(authAvatar);
     const [isPremium, setIsPremium] = useState(true);
     // Dynamic aggregate budget target limit
     const [totalBudgetLimit, setTotalBudgetLimit] = useState(() =>
@@ -59,8 +62,8 @@ export default function DashboardPage({ userId }) {
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     // Form templates inside modes
     const [supportText, setSupportText] = useState('');
-    const [supportEmail, setSupportEmail] = useState('nakulgharote@gmail.com');
-    const [profileEditedName, setProfileEditedName] = useState('Alex Morgan');
+    const [supportEmail, setSupportEmail] = useState(authEmail);
+    const [profileEditedName, setProfileEditedName] = useState(authName || '');
     const [profilePhone, setProfilePhone] = useState('');
 
     // Hydrate all user data from Supabase once on mount.
@@ -82,11 +85,16 @@ export default function DashboardPage({ userId }) {
             if (s.data?.length) setSubscriptions(s.data);
 
             if (p.data) {
-                if (p.data.name != null) setProfileName(p.data.name);
-                if (p.data.email != null) setSupportEmail(p.data.email);
+                // Name preference: provider metadata (Google/email signup) wins;
+                // fall back to the saved profiles table name only when the auth
+                // user has no display-name metadata yet.
+                if (p.data.name != null && !authName) setProfileName(p.data.name);
+                if (p.data.email != null) setSupportEmail(p.data.email || authEmail);
                 if (p.data.phone != null) setProfilePhone(p.data.phone);
                 if (p.data.currency != null) setProfileCurrency(p.data.currency);
-                if (p.data.photo_url != null) setProfilePhoto(p.data.photo_url);
+                // Avatar preference: provider avatar (Google) wins; otherwise use
+                // a photo saved in the profiles table if present.
+                if (p.data.photo_url != null && !authAvatar) setProfilePhoto(p.data.photo_url);
                 if (p.data.total_budget_limit != null) {
                     setTotalBudgetLimit(Number(p.data.total_budget_limit));
                     setNewTotalBudgetVal(String(p.data.total_budget_limit));
@@ -544,7 +552,7 @@ export default function DashboardPage({ userId }) {
         premiumStatus={isPremium}
         onUpgradePlan={() => setShowUpgradeModal(true)}
         onLogout={handleLogout}
-        profileName={profileName}
+        profileName={profileName || 'User'}
         profilePhoto={profilePhoto}
       />
 
@@ -616,7 +624,7 @@ export default function DashboardPage({ userId }) {
       <main className="flex-1 min-w-0 w-full lg:ml-[260px] min-h-screen flex flex-col overflow-x-hidden">
         
         {/* Sticky Header */}
-        <Header notifications={notifications} notifError={notifError} markAsRead={handleMarkAsRead} clearNotifications={handleClearNotifications} onOpenProfile={() => setShowProfileModal(true)} onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)} profileName={profileName} profilePhoto={profilePhoto}/>
+        <Header notifications={notifications} notifError={notifError} markAsRead={handleMarkAsRead} clearNotifications={handleClearNotifications} onOpenProfile={() => setShowProfileModal(true)} onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)} profileName={profileName || 'User'} profilePhoto={profilePhoto}/>
 
         {/* Dynamic Inner Panel based on active tab state */}
         <div className="p-3 sm:p-4 md:p-6 xl:p-8 flex-1 max-w-7xl w-full mx-auto overflow-x-hidden" id="main-scrollable-panel">
@@ -626,7 +634,7 @@ export default function DashboardPage({ userId }) {
               {/* Introduction bar */}
               <div className="border-b border-[#141414]/15 pb-4">
                 <h1 className="text-xl sm:text-2xl md:text-3xl xl:text-4xl font-serif italic font-semibold text-[#141414] tracking-tight leading-tight">Financial Exposition</h1>
-                <p className="mt-2 break-words text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[#141414]/60">ACCOUNT OWNER: {profileName} // JULY REPORT ENGINE</p>
+                <p className="mt-2 break-words text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[#141414]/60">ACCOUNT OWNER: {profileName || 'User'} // JULY REPORT ENGINE</p>
               </div>
 
               {/* Three card grid metric columns */}
@@ -722,7 +730,7 @@ export default function DashboardPage({ userId }) {
 
                   {/* Avatars series matching user screenshot */}
                   <div className="mt-6 flex -space-x-1.5 items-center">
-                    <div className="w-7 h-7 rounded-none border border-[#141414] bg-[#EBEBE4] text-[9px] text-[#141414] flex items-center justify-center font-bold font-mono">AM</div>
+                    <div className="w-7 h-7 rounded-none border border-[#141414] bg-[#EBEBE4] text-[9px] text-[#141414] flex items-center justify-center font-bold font-mono">{getInitials(profileName || 'User')}</div>
                     <div className="w-7 h-7 rounded-none border border-[#141414] bg-[#F27D26] text-[9px] text-white flex items-center justify-center font-bold font-mono">WF</div>
                     <div className="w-7 h-7 rounded-none border border-[#141414] bg-[#D1C6B4] text-[9px] text-[#141414] flex items-center justify-center font-bold font-mono">SM</div>
                     <div className="w-7 h-7 rounded-none border border-[#141414] bg-[#141414] text-[9px] text-white flex items-center justify-center font-bold font-mono">+39</div>
@@ -834,6 +842,12 @@ export default function DashboardPage({ userId }) {
           setProfileEditedName(name);
           setProfilePhone(phone);
           setProfileCurrency(currency);
+          // Persist the display name to Supabase auth user metadata so it
+          // survives as the authenticated user's name on next login/session.
+          if (name && updateUser) {
+            const { error } = await updateUser({ full_name: name });
+            if (error) console.error('Failed to update profile metadata:', error);
+          }
           try {
             await writeProfile({ name, phone, currency });
           } catch (_) {}
