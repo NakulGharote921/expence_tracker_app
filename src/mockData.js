@@ -38,6 +38,19 @@ export const INITIAL_CATEGORIES = {
 
 export const PAYMENT_METHODS = ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Bank Transfer'];
 
+export const SUBSCRIPTION_CATEGORIES = [
+    'Entertainment', 'Music', 'Streaming', 'Software', 'Cloud Storage',
+    'Education', 'Fitness', 'Gaming', 'News', 'Productivity', 'Shopping', 'Other',
+];
+
+export const BILLING_CYCLES = ['Weekly', 'Monthly', 'Quarterly', 'Half-Yearly', 'Yearly'];
+
+export const SUBSCRIPTION_STATUSES = ['Active', 'Paused', 'Cancelled'];
+
+export const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP'];
+
+export const CURRENCY_SYMBOLS = { INR: '\u20B9', USD: '$', EUR: '\u20AC', GBP: '\u00A3' };
+
 export const INITIAL_TRANSACTIONS = [];
 
 export const INITIAL_BUDGETS = [];

@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HelpCircle, X, Sparkles, TrendingUp, TrendingDown, History, CheckCircle, User, Save, LogOut, Edit2 } from 'lucide-react';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -16,237 +16,35 @@ import TransactionsTab from './TransactionsTab';
 import BudgetsTab from './BudgetsTab';
 import CategoriesTab from './CategoriesTab';
 import ReportsTab from './ReportsTab';
+import SubscriptionsTab from './SubscriptionsTab';
 import ProfileModal from './ProfileModal';
 import { INITIAL_CATEGORIES, INITIAL_TRANSACTIONS, INITIAL_BUDGETS, MOCK_NOTIFICATIONS } from '../mockData';
-import { useAuth } from '../lib/appwrite/AuthProvider';
-import { account } from '../lib/appwrite/client';
-import { loadUserData, saveUserData, getOrCreateProfile, updateProfile, appwriteErrorMessage, logAppwriteError, TABLE_USER_PROFILES } from '../lib/appwrite/db';
+import { supabaseDb } from '../utils/supabaseDb';
 
-// Module-scope throttle so rapid autosave failures don't spam the error banner.
-let lastAppwriteErrorToastAt = 0;
-export default function DashboardPage() {
-    const { user, signOut, authStatus, logoutGeneration } = useAuth();
+export default function DashboardPage({ userId }) {
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [hydrated, setHydrated] = useState(false);
 
-    // --- Data layer: localStorage persistence (auth-only migration; Nhost/GraphQL data deferred) ---
-    const lsTransactionsKey = 'wf_transactions';
-    const lsBudgetsKey = 'wf_budgets';
-    const lsCategoriesKey = 'wf_categories';
-
-    const readLS = (key, fallback) => {
-        try {
-            const raw = localStorage.getItem(key);
-            return raw ? JSON.parse(raw) : fallback;
-        } catch (_) {
-            return fallback;
-        }
-    };
-
-    const writeLS = (key, value) => {
-        try {
-            localStorage.setItem(key, JSON.stringify(value));
-        } catch (_) {}
-    };
-
-    const [transactions, setTransactions] = useState(() => readLS(lsTransactionsKey, INITIAL_TRANSACTIONS));
-    const [categories, setCategories] = useState(() => {
-        const stored = readLS(lsCategoriesKey, null);
-        return stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : INITIAL_CATEGORIES;
-    });
-    const [budgets, setBudgets] = useState(() => readLS(lsBudgetsKey, INITIAL_BUDGETS));
+    // --- Data layer: Supabase persistence (per authenticated user) ---
+    const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
+    const [categories, setCategories] = useState(INITIAL_CATEGORIES);
+    const [budgets, setBudgets] = useState(INITIAL_BUDGETS);
+    const [subscriptions, setSubscriptions] = useState([]);
     const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
 
-    // Persist data to localStorage whenever it changes.
-    useEffect(() => { writeLS(lsTransactionsKey, transactions); }, [transactions, lsTransactionsKey]);
-    useEffect(() => { writeLS(lsBudgetsKey, budgets); }, [budgets, lsBudgetsKey]);
-    useEffect(() => { writeLS(lsCategoriesKey, categories); }, [categories, lsCategoriesKey]);
-
-    // Seed profile from the authenticated Appwrite user on mount.
-    useEffect(() => {
-        if (!user) return;
-        const displayName = user.name || user.email || '';
-        if (displayName) {
-            if (!localStorage.getItem('wf_profile_name')) {
-                localStorage.setItem('wf_profile_name', displayName);
-            }
-            try { setProfileName(displayName); setProfileEditedName(displayName); } catch (_) {}
-        }
-        if (user.email && !localStorage.getItem('wf_profile_email')) {
-            localStorage.setItem('wf_profile_email', user.email);
-        }
-        try { setSupportEmail(user.email || supportEmail || ''); } catch (_) {}
-
-        // Fetch the Google profile picture via the OAuth provider access token.
-        (async () => {
-            try {
-                const session = await account.getSession('current');
-                const token = session?.providerAccessToken;
-                if (!token) return;
-                const res = await fetch(
-                    `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${encodeURIComponent(token)}`
-                );
-                if (!res.ok) return;
-                const googleUser = await res.json();
-                if (googleUser?.picture) {
-                    try { setProfilePhoto(googleUser.picture); } catch (_) {}
-                    try { localStorage.setItem('wf_profile_photo', googleUser.picture); } catch (_) {}
-                }
-            } catch (_) {}
-        })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
-
-    const writeTransactions = (next) => writeLS(lsTransactionsKey, next);
-    const writeBudgets = (next) => writeLS(lsBudgetsKey, next);
-    const writeCategories = (next) => writeLS(lsCategoriesKey, next);
-    const writeTargetBudget = (value) => {
-        try { localStorage.setItem('wf_total_budget_limit', value.toString()); } catch (_) {}
-    };
-    const writeProfile = (profileData) => {
-        try {
-            if (profileData && profileData.name !== undefined) localStorage.setItem('wf_profile_name', profileData.name);
-            if (profileData && profileData.phone !== undefined) localStorage.setItem('wf_profile_phone', profileData.phone);
-            if (profileData && profileData.currency !== undefined) localStorage.setItem('wf_profile_currency', profileData.currency);
-        } catch (_) {}
-    };
-
-    // Profile preferences
-    const [profileName, setProfileName] = useState(() => {
-        return localStorage.getItem('wf_profile_name') || 'Alex Morgan';
-    });
-    const [profilePhoto, setProfilePhoto] = useState(() => {
-        return localStorage.getItem('wf_profile_photo') || null;
-    });
-    const [isPremium, setIsPremium] = useState(() => {
-        return localStorage.getItem('wf_is_premium') !== 'false'; // defaults to true
-    });
+    // Profile preferences (hydrated from Supabase on mount)
+    const [profileName, setProfileName] = useState('Alex Morgan');
+    const [profilePhoto, setProfilePhoto] = useState(null);
+    const [isPremium, setIsPremium] = useState(true);
     // Dynamic aggregate budget target limit
-    const [totalBudgetLimit, setTotalBudgetLimit] = useState(() => {
-        const storedVal = localStorage.getItem('wf_total_budget_limit');
-        if (storedVal) {
-            return parseFloat(storedVal);
-        }
-        return INITIAL_BUDGETS.reduce((acc, b) => acc + b.limit, 0);
-    });
-    const [newTotalBudgetVal, setNewTotalBudgetVal] = useState(() => {
-        const storedVal = localStorage.getItem('wf_total_budget_limit');
-        if (storedVal)
-            return storedVal;
-        return INITIAL_BUDGETS.reduce((acc, b) => acc + b.limit, 0).toString();
-    });
+    const [totalBudgetLimit, setTotalBudgetLimit] = useState(() =>
+        INITIAL_BUDGETS.reduce((acc, b) => acc + b.limit, 0)
+    );
+    const [newTotalBudgetVal, setNewTotalBudgetVal] = useState(() =>
+        INITIAL_BUDGETS.reduce((acc, b) => acc + b.limit, 0).toString()
+    );
     const [isEditingTotalBudget, setIsEditingTotalBudget] = useState(false);
-    const [profileCurrency, setProfileCurrency] = useState(() => {
-        return localStorage.getItem('wf_profile_currency') || 'INR';
-    });
-
-    // Becomes true once loadUserData has run, so the persist effect does not
-    // sync an empty initial state over real cloud data before hydration finishes.
-    const [loaded, setLoaded] = useState(false);
-    const loggingOutRef = useRef(false);
-    const hydrateGenerationRef = useRef(0);
-
-    // Appwrite TablesDB data layer: hydrate from (or seed) the user's rows once on mount.
-    // Uses the CURRENT user from AuthProvider — never stale state.
-    const userId = user?.$id || null;
-
-    useEffect(() => {
-        if (!userId) return;
-        if (authStatus === 'logging_out') return;
-        console.log('[DATA] Loading data for user:', userId);
-        hydrateGenerationRef.current += 1;
-        const gen = hydrateGenerationRef.current;
-        let cancelled = false;
-        (async () => {
-            let loadData;
-            try {
-                loadData = await loadUserData(userId);
-            } catch (_) {
-                return; // keep localStorage fallback on network/index errors
-            }
-            if (cancelled || gen !== hydrateGenerationRef.current) return;
-            if (loadData) {
-                if (loadData.transactions) setTransactions(loadData.transactions);
-                if (loadData.budgets) setBudgets(loadData.budgets);
-                if (loadData.categories) setCategories(loadData.categories);
-                if (typeof loadData.totalBudgetLimit === 'number') {
-                    setTotalBudgetLimit(loadData.totalBudgetLimit);
-                    setNewTotalBudgetVal(loadData.totalBudgetLimit.toString());
-                    localStorage.setItem('wf_total_budget_limit', loadData.totalBudgetLimit.toString());
-                }
-                if (loadData.profileName) {
-                    setProfileName(loadData.profileName);
-                    setProfileEditedName(loadData.profileName);
-                    localStorage.setItem('wf_profile_name', loadData.profileName);
-                }
-                if (loadData.profileEmail) {
-                    setSupportEmail(loadData.profileEmail);
-                    localStorage.setItem('wf_profile_email', loadData.profileEmail);
-                }
-                if (loadData.profileCurrency) {
-                    setProfileCurrency(loadData.profileCurrency);
-                    localStorage.setItem('wf_profile_currency', loadData.profileCurrency);
-                }
-            } else {
-                // Seed first-run rows from whatever is currently in localStorage.
-                try {
-                    await saveUserData(userId, {
-                        transactions,
-                        budgets,
-                        categories,
-                        totalBudgetLimit,
-                        profileName: user?.name || profileName || '',
-                        profileEmail: user?.email || '',
-                        profileCurrency: profileCurrency || 'INR',
-                    });
-                } catch (err) {
-                    logAppwriteError('seed', TABLE_USER_PROFILES, err);
-                    triggerAppwriteError(err, 'Could not seed your data to Appwrite.');
-                }
-            }
-            if (cancelled || gen !== hydrateGenerationRef.current) return;
-            // Ensure exactly one profile row exists (shared guarded init — safe under
-            // StrictMode double effects / concurrent autosaves).
-            getOrCreateProfile(userId, {
-                profileName: (loadData && loadData.profileName) || user?.name || profileName || '',
-                profileEmail: user?.email || '',
-                profileCurrency: (loadData && loadData.profileCurrency) || profileCurrency || 'INR',
-                totalBudgetLimit: (loadData && loadData.totalBudgetLimit) || totalBudgetLimit || 0,
-            }).catch((err) => logAppwriteError('ensureProfile', TABLE_USER_PROFILES, err));
-            if (!cancelled && gen === hydrateGenerationRef.current) {
-                console.log('[DATA] Hydrate complete for user:', userId);
-                setLoaded(true);
-            }
-        })();
-        return () => { cancelled = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userId, authStatus]);
-
-    // Persist data to the Appwrite tables whenever it changes (after initial load).
-    // Guards: loaded must be true (hydration done), not logging out.
-    useEffect(() => {
-        if (!userId || loggingOutRef.current) return;
-        if (!loaded) return;
-        const t = setTimeout(async () => {
-            if (loggingOutRef.current) return;
-            try {
-                console.log('[DATA] Persisting data for user:', userId);
-                await saveUserData(userId, {
-                    transactions,
-                    budgets,
-                    categories,
-                    totalBudgetLimit,
-                    profileName: user?.name || profileName || '',
-                    profileEmail: user?.email || '',
-                    profileCurrency: profileCurrency || 'INR',
-                });
-                setErrorToast('');
-            } catch (err) {
-                logAppwriteError('persist', TABLE_USER_PROFILES, err);
-                triggerAppwriteError(err, 'Data was not saved to Appwrite.');
-            }
-        }, 400);
-        return () => clearTimeout(t);
-    }, [userId, loaded, transactions, budgets, categories, totalBudgetLimit, profileCurrency]);
+    const [profileCurrency, setProfileCurrency] = useState('INR');
 
     // Modal open controllers
     const [showSupportModal, setShowSupportModal] = useState(false);
@@ -255,27 +53,102 @@ export default function DashboardPage() {
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     // Form templates inside modes
     const [supportText, setSupportText] = useState('');
-    const [supportEmail, setSupportEmail] = useState(() => {
-        return localStorage.getItem('wf_profile_email') || 'nakulgharote@gmail.com';
-    });
-    const [profileEditedName, setProfileEditedName] = useState(() => {
-        return localStorage.getItem('wf_profile_name') || 'Alex Morgan';
-    });
-    const [profilePhone, setProfilePhone] = useState(() => {
-        return localStorage.getItem('wf_profile_phone') || '';
-    });
+    const [supportEmail, setSupportEmail] = useState('nakulgharote@gmail.com');
+    const [profileEditedName, setProfileEditedName] = useState('Alex Morgan');
+    const [profilePhone, setProfilePhone] = useState('');
+
+    // Hydrate all user data from Supabase once on mount.
+    useEffect(() => {
+        if (!userId) return;
+        let cancelled = false;
+        (async () => {
+            const [t, c, b, s, p] = await Promise.all([
+                supabaseDb.hydrateTransactions(userId),
+                supabaseDb.hydrateCategories(userId),
+                supabaseDb.hydrateBudgets(userId),
+                supabaseDb.hydrateSubscriptions(userId),
+                supabaseDb.hydrateProfile(userId, null),
+            ]);
+
+            if (t.data?.length) setTransactions(t.data);
+            if (c.data && Object.keys(c.data).length) setCategories(c.data);
+            if (b.data?.length) setBudgets(b.data);
+            if (s.data?.length) setSubscriptions(s.data);
+
+            if (p.data) {
+                if (p.data.name != null) setProfileName(p.data.name);
+                if (p.data.email != null) setSupportEmail(p.data.email);
+                if (p.data.phone != null) setProfilePhone(p.data.phone);
+                if (p.data.currency != null) setProfileCurrency(p.data.currency);
+                if (p.data.photo_url != null) setProfilePhoto(p.data.photo_url);
+                if (p.data.total_budget_limit != null) {
+                    setTotalBudgetLimit(Number(p.data.total_budget_limit));
+                    setNewTotalBudgetVal(String(p.data.total_budget_limit));
+                }
+            }
+            setHydrated(true);
+        })();
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId]);
+
+    // Persist mutations to Supabase (debounced) after hydration.
+    useEffect(() => {
+        if (!hydrated || !userId) return;
+        const t = setTimeout(() => {
+            supabaseDb.reconcileTransactions(userId, transactions);
+        }, 300);
+        return () => clearTimeout(t);
+    }, [transactions, hydrated, userId]);
+
+    useEffect(() => {
+        if (!hydrated || !userId) return;
+        const t = setTimeout(() => {
+            supabaseDb.reconcileBudgets(userId, budgets);
+        }, 300);
+        return () => clearTimeout(t);
+    }, [budgets, hydrated, userId]);
+
+    useEffect(() => {
+        if (!hydrated || !userId) return;
+        const t = setTimeout(() => {
+            supabaseDb.reconcileCategories(userId, categories);
+        }, 300);
+        return () => clearTimeout(t);
+    }, [categories, hydrated, userId]);
+
+    useEffect(() => {
+        if (!hydrated || !userId) return;
+        const t = setTimeout(() => {
+            supabaseDb.reconcileSubscriptions(userId, subscriptions);
+        }, 300);
+        return () => clearTimeout(t);
+    }, [subscriptions, hydrated, userId]);
+
+    // Persist the user profile + aggregate budget target to Supabase (debounced).
+    useEffect(() => {
+        if (!hydrated || !userId) return;
+        const t = setTimeout(() => {
+            supabaseDb.updateProfile(userId, {
+                name: profileName,
+                email: supportEmail,
+                phone: profilePhone,
+                currency: profileCurrency,
+                photo_url: profilePhoto,
+                total_budget_limit: totalBudgetLimit,
+            });
+        }, 300);
+        return () => clearTimeout(t);
+    }, [hydrated, userId, profileName, supportEmail, profilePhone, profileCurrency, profilePhoto, totalBudgetLimit]);
+
+    const writeTransactions = () => {};
+    const writeBudgets = () => {};
+    const writeCategories = () => {};
+    const writeTargetBudget = () => {};
+    const writeProfile = () => {};
+
     // Success message feedback
     const [successToast, setSuccessToast] = useState('');
-    // Appwrite error feedback (throttled so autosave failures don't spam)
-    const [errorToast, setErrorToast] = useState('');
-    const triggerAppwriteError = (err, fallback) => {
-        try {
-            const now = Date.now();
-            if (now - lastAppwriteErrorToastAt < 4000) return;
-            lastAppwriteErrorToastAt = now;
-            setErrorToast(appwriteErrorMessage(err, fallback));
-        } catch (_) {}
-    };
     // Confirmation Modal state
     const [confirmDialog, setConfirmDialog] = useState({
         isOpen: false,
@@ -442,6 +315,39 @@ export default function DashboardPage() {
         writeCategories(next)?.catch(() => { });
         triggerToast(`Registered new category classification: ${name}.`);
     };
+
+    // Subscription handlers (localStorage persistence)
+    const handleAddSubscription = (sub) => {
+        const newSub = {
+            id: `sub-${Date.now()}`,
+            ...sub,
+            createdAt: sub.createdAt || new Date().toISOString().split('T')[0],
+            updatedAt: new Date().toISOString().split('T')[0],
+        };
+        // Check for duplicate active subscription with same name.
+        const dup = subscriptions.find(s =>
+            s.name.toLowerCase() === String(newSub.name).toLowerCase() && s.status === 'Active'
+        );
+        if (dup) {
+            triggerToast('An active subscription with this name already exists.');
+            return;
+        }
+        setSubscriptions(prev => [newSub, ...prev]);
+        triggerToast('Subscription added successfully.');
+    };
+
+    const handleUpdateSubscription = (id, updated) => {
+        setSubscriptions(prev => prev.map(s => s.id === id
+            ? { ...s, ...updated, id, updatedAt: new Date().toISOString().split('T')[0] }
+            : s));
+        triggerToast('Subscription updated successfully.');
+    };
+
+    const handleDeleteSubscription = (id) => {
+        setSubscriptions(prev => prev.filter(s => s.id !== id));
+        triggerToast('Subscription deleted permanently.');
+    };
+
     // Notification handles
     const handleMarkAsRead = (id) => {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
@@ -463,22 +369,10 @@ export default function DashboardPage() {
         setSupportText('');
         setShowSupportModal(false);
     };
-    const handleLogout = async () => {
-        loggingOutRef.current = true;
-        // Clear frontend state — do NOT delete any Appwrite database rows.
-        setTransactions([]);
-        setBudgets([]);
-        setCategories({});
-        setTotalBudgetLimit(0);
-        setProfileName('Alex Morgan');
-        setProfileEditedName('Alex Morgan');
-        setProfilePhoto(null);
-        setProfileCurrency('INR');
-        setSupportEmail('');
-        setLoaded(false);
-        await signOut();
-        // Full page reload to clear all React state and re-initialize cleanly.
-        window.location.href = `${window.location.origin}/auth`;
+    const handleLogout = () => {
+        // Sign out of Supabase; App.jsx flips to the auth page on state change.
+        supabaseDb.signOut().catch(() => {});
+        setHydrated(false);
     };
     const handleUpdateTotalBudgetSubmit = (e) => {
         e.preventDefault();
@@ -488,7 +382,6 @@ export default function DashboardPage() {
             return;
         }
         setTotalBudgetLimit(limitNum);
-        localStorage.setItem('wf_total_budget_limit', limitNum.toString());
         writeTargetBudget(limitNum)?.catch(() => {});
         // Divide target amount across existing budget categories equally
         const count = budgets.length || 1;
@@ -512,11 +405,6 @@ export default function DashboardPage() {
       {successToast && (<div className="fixed top-5 right-5 z-50 bg-[#141414] text-white px-5 py-3 rounded-none shadow-[4px_4px_0px_0px_#F27D26] border border-[#141414] flex items-center gap-3 text-[10px] font-mono uppercase tracking-widest animate-fade-in-up">
           <CheckCircle className="w-5 h-5 text-[#F27D26] shrink-0"/>
           <span>{successToast}</span>
-        </div>)}
-
-      {/* Appwrite Error Banner */}
-      {errorToast && (<div className="fixed top-5 left-5 z-50 max-w-xs bg-red-600 text-white px-5 py-3 rounded-none shadow-[4px_4px_0px_0px_#141414] border border-[#141414] flex items-center gap-3 text-[10px] font-mono uppercase tracking-widest animate-fade-in-up">
-          <span>{errorToast}</span>
         </div>)}
 
       {/* Sidebar navigation */}
@@ -759,6 +647,10 @@ export default function DashboardPage() {
               <CategoriesTab categories={categories} transactions={transactions} onAddCategory={handleAddCategory}/>
             </div>)}
 
+          {activeTab === 'subscriptions' && (<div className="animate-fade-in">
+              <SubscriptionsTab subscriptions={subscriptions} onAdd={handleAddSubscription} onUpdate={handleUpdateSubscription} onDelete={handleDeleteSubscription}/>
+            </div>)}
+
           {activeTab === 'reports' && (<div className="animate-fade-in">
               <ReportsTab transactions={transactions} categories={categories}/>
             </div>)}
@@ -818,32 +710,15 @@ export default function DashboardPage() {
         onTargetBudgetChange={(val) => {
           setTotalBudgetLimit(val);
           setNewTotalBudgetVal(val.toString());
-          localStorage.setItem('wf_total_budget_limit', val.toString());
         }}
         onSave={async (name, phone, currency) => {
           setProfileName(name);
           setProfileEditedName(name);
           setProfilePhone(phone);
           setProfileCurrency(currency);
-          localStorage.setItem('wf_profile_name', name);
-          localStorage.setItem('wf_profile_phone', phone);
-          localStorage.setItem('wf_profile_currency', currency);
           try {
             await writeProfile({ name, phone, currency });
           } catch (_) {}
-          if (userId) {
-            try {
-              await updateProfile(userId, {
-                profileName: name,
-                profileEmail: supportEmail || user?.email || '',
-                profileCurrency: currency,
-                totalBudgetLimit: totalBudgetLimit ?? 0,
-              });
-            } catch (err) {
-              logAppwriteError('updateProfile', TABLE_USER_PROFILES, err);
-              triggerAppwriteError(err, 'Profile changes could not be saved to Appwrite.');
-            }
-          }
         }}
         onLogout={handleLogout}
         triggerToast={triggerToast}

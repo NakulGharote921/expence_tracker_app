@@ -7,3 +7,8 @@ coverage/
 .env*
 !.env.example
 *.pptx
+.agents/
+Delete/
+supabase/.temp/
+script/
+scripts/

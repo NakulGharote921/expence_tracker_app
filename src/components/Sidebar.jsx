@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React from 'react';
-import { LayoutDashboard, Receipt, Wallet, Tags, BarChart3, Plus, HelpCircle, LogOut, UserPlus, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Receipt, Wallet, Tags, BarChart3, Plus, HelpCircle, LogOut, UserPlus, ChevronRight, Repeat } from 'lucide-react';
 import Avatar from './Avatar';
 export default function Sidebar({ activeTab, setActiveTab, onQuickAdd, onOpenSupport, onOpenProfile, premiumStatus, onUpgradePlan, onLogout, profileName, profilePhoto }) {
     const menuItems = [
         { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
         { id: 'transactions', name: 'Transactions', icon: Receipt },
+        { id: 'subscriptions', name: 'Subscriptions', icon: Repeat },
         { id: 'budgets', name: 'Budgets', icon: Wallet },
         { id: 'categories', name: 'Categories', icon: Tags },
         { id: 'reports', name: 'Reports', icon: BarChart3 },
