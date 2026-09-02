@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { HelpCircle, X, Sparkles, TrendingUp, TrendingDown, History, CheckCircle, User, Save, LogOut, Edit2 } from 'lucide-react';
 import Sidebar from './Sidebar';
@@ -19,7 +19,7 @@ import CategoriesTab from './CategoriesTab';
 import ReportsTab from './ReportsTab';
 import SubscriptionsTab from './SubscriptionsTab';
 import ProfileModal from './ProfileModal';
-import { INITIAL_CATEGORIES, INITIAL_TRANSACTIONS, INITIAL_BUDGETS, MOCK_NOTIFICATIONS } from '../mockData';
+import { INITIAL_CATEGORIES, INITIAL_TRANSACTIONS, INITIAL_BUDGETS } from '../mockData';
 import { supabaseDb } from '../utils/supabaseDb';
 
 export default function DashboardPage({ userId }) {
@@ -33,7 +33,10 @@ export default function DashboardPage({ userId }) {
     const [categories, setCategories] = useState(INITIAL_CATEGORIES);
     const [budgets, setBudgets] = useState(INITIAL_BUDGETS);
     const [subscriptions, setSubscriptions] = useState([]);
-    const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+    // Notification store: starts empty, hydrated + kept in sync with Supabase.
+    const [notifications, setNotifications] = useState([]);
+    const [notifError, setNotifError] = useState(null);
+    const notifChannelRef = useRef(null);
 
     // Profile preferences (hydrated from Supabase on mount)
     const [profileName, setProfileName] = useState('Alex Morgan');
@@ -92,6 +95,45 @@ export default function DashboardPage({ userId }) {
             setHydrated(true);
         })();
         return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId]);
+
+    // Load the user's notifications and subscribe to live changes.
+    useEffect(() => {
+        if (!userId) return;
+        let cancelled = false;
+
+        (async () => {
+            const res = await supabaseDb.hydrateNotifications(userId);
+            if (cancelled) return;
+            if (res.error) {
+                setNotifError(true);
+                return;
+            }
+            setNotifications(res.data || []);
+        })();
+
+        const handleChange = (eventType, notif) => {
+            if (cancelled) return;
+            if (eventType === 'INSERT') {
+                setNotifications((prev) =>
+                    prev.some((n) => n.id === notif.id) ? prev : [notif, ...prev]
+                );
+            } else if (eventType === 'UPDATE') {
+                setNotifications((prev) =>
+                    prev.map((n) => (n.id === notif.id ? { ...n, ...notif } : n))
+                );
+            }
+        };
+
+        const channel = supabaseDb.subscribeNotifications(userId, handleChange);
+        notifChannelRef.current = channel;
+
+        return () => {
+            cancelled = true;
+            supabaseDb.unsubscribeNotifications(notifChannelRef.current);
+            notifChannelRef.current = null;
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
 
@@ -182,21 +224,25 @@ export default function DashboardPage({ userId }) {
                 spent: expensesInCat
             };
         });
-        // Check if any budget spent exceeded or got extremely close (> 90%) to the limit, causing automatic notification trigger
+        // Emit a single deduped notification per budget once it exceeds 90% of its limit.
+        // Dedup is enforced both by title-search (local) and by `notify`'s related_id guard.
         updatedBudgets.forEach(b => {
-            const existingNotif = notifications.find(n => n.title === `${b.category} Cap Warning`);
-            if (b.spent >= b.limit * 0.9 && !existingNotif) {
-                setNotifications(prev => [
-                    {
-                        id: `notif-${Date.now()}-${b.category}`,
-                        title: `${b.category} Cap Warning`,
-                        message: `Spending inside ${b.category} has reached ₹${b.spent.toFixed(2)} of your ₹${b.limit} limit.`,
-                        time: 'Just now',
-                        read: false,
-                        type: 'alert'
-                    },
-                    ...prev
-                ]);
+            if (b.limit > 0 && b.spent >= b.limit * 0.9) {
+                const existingNotif = notifications.some(
+                    (n) => n.title === `${b.category} Cap Warning` || n.relatedId === `budget-${b.category}`
+                );
+                if (!existingNotif) {
+                    const exceeded = b.spent >= b.limit;
+                    notify(
+                        exceeded ? 'Budget Exceeded' : 'Budget Warning',
+                        exceeded
+                            ? `Your ${b.category} budget has been exceeded (₹${b.spent.toFixed(2)} of ₹${b.limit}).`
+                            : `You have used ${Math.round((b.spent / b.limit) * 100)}% of your ${b.category} budget.`,
+                        'alert',
+                        `budget-${b.category}`,
+                        'budget'
+                    );
+                }
             }
         });
         // Only set if different to prevent looping
@@ -204,7 +250,37 @@ export default function DashboardPage({ userId }) {
         if (spendChanged) {
             setBudgets(updatedBudgets);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [transactions, budgets, notifications]);
+
+    // Subscription due-soon reminders (deduped per subscription + billing date).
+    useEffect(() => {
+        if (!notifications || !userId) return;
+        const existingKeys = new Set(notifications.map((n) => n.relatedId));
+        const today = new Date();
+
+        (subscriptions || []).forEach((sub) => {
+            if (!sub.nextBillingDate || sub.status !== 'Active') return;
+            const due = new Date(sub.nextBillingDate);
+            if (isNaN(due.getTime())) return;
+
+            const daysUntil = Math.ceil((due - today) / 86_400_000);
+            const reminderWindow = Number(sub.reminderDays) || 3;
+            if (daysUntil >= 0 && daysUntil <= reminderWindow) {
+                const key = `sub-${sub.id}-${sub.nextBillingDate}`;
+                if (existingKeys.has(key)) return;
+                notify(
+                    'Subscription Reminder',
+                    `${sub.name} payment of ₹${Number(sub.amount) || 0} is due soon.`,
+                    'info',
+                    key,
+                    'subscription'
+                );
+            }
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [subscriptions, notifications, userId]);
+
     // Actions handlers
     const handleAddExpense = (name, amount, category, description, paymentMethod) => {
         const newTx = {
@@ -221,6 +297,13 @@ export default function DashboardPage({ userId }) {
         setTransactions(next);
         writeTransactions(next)?.catch(() => { });
         triggerToast(`Added expense for ₹${amount.toFixed(2)}!`);
+        notify(
+            'Transaction Added',
+            `Your ₹${amount ? amount.toFixed(2) : '0.00'} expense was added successfully.`,
+            'info',
+            newTx.id,
+            'transaction'
+        );
     };
 
     const handleDeleteTransaction = (id) => {
@@ -263,6 +346,14 @@ export default function DashboardPage({ userId }) {
         setTransactions(next);
         writeTransactions(next)?.catch(() => { });
         triggerToast(`Successfully recorded transaction: "${txData.name}"`);
+        const amount = Number(txData.amount) || 0;
+        notify(
+            txData.type === 'income' ? 'Income Added' : 'Transaction Added',
+            `Your ₹${amount.toFixed(2)} ${txData.type === 'income' ? 'income' : 'expense'} was recorded successfully.`,
+            txData.type === 'income' ? 'success' : 'info',
+            newTx.id,
+            'transaction'
+        );
     };
 
     const handleUpdateTransaction = (id, updated) => {
@@ -351,13 +442,33 @@ export default function DashboardPage({ userId }) {
         triggerToast('Subscription deleted permanently.');
     };
 
-    // Notification handles
+    // Notification handles (persist read-state to Supabase, optimistic UI update)
+    const notify = useCallback(async (title, message, type, relatedId, relatedType) => {
+        if (!userId) return;
+        const res = await supabaseDb.createNotification(userId, { title, message, type, relatedId, relatedType });
+        if (res.error) {
+            console.error('Failed to create notification:', res.error);
+            setNotifError(true);
+            return;
+        }
+        // Optimistically surface the notification immediately, even if realtime
+        // is unavailable. The id-guard prevents duplicates if realtime also arrives.
+        if (res.inserted && res.notification) {
+            setNotifications((prev) =>
+                prev.some((n) => n.id === res.notification.id) ? prev : [res.notification, ...prev]
+            );
+        }
+    }, [userId]);
     const handleMarkAsRead = (id) => {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        if (userId) supabaseDb.markNotificationRead(userId, id);
+        setNotifError(null);
     };
     const handleClearNotifications = () => {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        if (userId) supabaseDb.markAllNotificationsRead(userId).catch(() => {});
         triggerToast('All notifications read.');
+        setNotifError(null);
     };
     const triggerToast = (msg) => {
         setSuccessToast(msg);
@@ -373,6 +484,13 @@ export default function DashboardPage({ userId }) {
         setShowSupportModal(false);
     };
     const handleLogout = () => {
+        // Remove the realtime subscription and clear in-memory notification state.
+        // (Notification records remain in Supabase for this user.)
+        supabaseDb.unsubscribeNotifications(notifChannelRef.current);
+        notifChannelRef.current = null;
+        setNotifications([]);
+        setNotifError(null);
+
         // Sign out of Supabase; the auth-state change flips routing to the login page.
         supabaseDb.signOut().catch(() => {});
         setHydrated(false);
@@ -498,7 +616,7 @@ export default function DashboardPage({ userId }) {
       <main className="flex-1 min-w-0 w-full lg:ml-[260px] min-h-screen flex flex-col overflow-x-hidden">
         
         {/* Sticky Header */}
-        <Header notifications={notifications} markAsRead={handleMarkAsRead} clearNotifications={handleClearNotifications} onOpenProfile={() => setShowProfileModal(true)} onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)} profileName={profileName} profilePhoto={profilePhoto}/>
+        <Header notifications={notifications} notifError={notifError} markAsRead={handleMarkAsRead} clearNotifications={handleClearNotifications} onOpenProfile={() => setShowProfileModal(true)} onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)} profileName={profileName} profilePhoto={profilePhoto}/>
 
         {/* Dynamic Inner Panel based on active tab state */}
         <div className="p-3 sm:p-4 md:p-6 xl:p-8 flex-1 max-w-7xl w-full mx-auto overflow-x-hidden" id="main-scrollable-panel">

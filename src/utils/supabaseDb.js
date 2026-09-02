@@ -6,6 +6,21 @@ import { supabase } from './supabase';
 
 const mapRow = (u) => ({ ...u, user_id: undefined });
 
+// Humanize a notification timestamp for display (e.g. "Just now", "2h ago").
+function formatNotifTime(iso) {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  const diff = Date.now() - then;
+  if (diff < 60_000) return 'Just now';
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
 // ---- field mapping: app camelCase <-> DB snake_case -----------------------
 const toSnake = (obj, pairs) => {
   if (!obj) return obj;
@@ -278,5 +293,119 @@ export const supabaseDb = {
   },
   async updateProfile(userId, patch) {
     return supabase.from('profiles').update(patch).eq('id', userId).select().maybeSingle();
+  },
+
+  // ---- Notifications ----
+  // Map a server notification row into the shape the UI components expect.
+  mapNotificationRow(row) {
+    return {
+      id: row.id,
+      title: row.title,
+      message: row.message,
+      type: row.type,
+      read: row.is_read,
+      time: formatNotifTime(row.created_at),
+      createdAt: row.created_at,
+      relatedId: row.related_id,
+      relatedType: row.related_type,
+    };
+  },
+  async hydrateNotifications(userId) {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) {
+      console.error('Failed to load notifications:', error);
+      return { data: null, error };
+    }
+    return { data: (data || []).map((r) => this.mapNotificationRow(r)), error: null };
+  },
+  // Insert a notification after de-duplicating against an existing unread one
+  // with the same (related_type, related_id). Returns { inserted, notification, error }.
+  async createNotification(userId, { title, message, type = 'info', relatedId = null, relatedType = null }) {
+    if (!relatedId) {
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert({ user_id: userId, title, message, type, related_id: relatedId, related_type: relatedType })
+        .select()
+        .single();
+      return {
+        inserted: !error && !!data,
+        notification: data ? this.mapNotificationRow(data) : null,
+        error,
+      };
+    }
+    // Deduplicate: skip if there is already an unread notification for this event.
+    const { data: existing, error: checkErr } = await supabase
+      .from('notifications')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('related_type', relatedType)
+      .eq('related_id', relatedId)
+      .eq('is_read', false)
+      .limit(1);
+    if (checkErr) return { inserted: false, notification: null, error: checkErr };
+    if (existing && existing.length > 0) return { inserted: false, notification: null, error: null };
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert({ user_id: userId, title, message, type, related_id: relatedId, related_type: relatedType })
+      .select()
+      .single();
+    return {
+      inserted: !error && !!data,
+      notification: data ? this.mapNotificationRow(data) : null,
+      error,
+    };
+  },
+  async markNotificationRead(userId, id) {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', userId)
+      .eq('id', id);
+    if (error) console.error('Failed to mark notification read:', error);
+    return { error };
+  },
+  async markAllNotificationsRead(userId) {
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', userId)
+      .eq('is_read', false)
+      .select('id');
+    if (error) console.error('Failed to mark all notifications read:', error);
+    return { data, error };
+  },
+  // Subscribe to live INSERT/UPDATE changes for this user's notifications.
+  subscribeNotifications(userId, onChange) {
+    const channel = supabase
+      .channel(`notifications-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const row = payload.new;
+          if (!row) return;
+          if (payload.eventType === 'INSERT') {
+            onChange('insert', this.mapNotificationRow(row));
+          } else if (payload.eventType === 'UPDATE') {
+            onChange('update', this.mapNotificationRow(row));
+          }
+        }
+      )
+      .subscribe();
+    return channel;
+  },
+  unsubscribeNotifications(channel) {
+    if (channel) supabase.removeChannel(channel);
   },
 };

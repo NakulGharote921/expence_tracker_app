@@ -90,6 +90,21 @@ create table if not exists public.subscriptions (
   updated_at timestamptz not null default now()
 );
 
+-- ---------------------------------------------------------------------------
+-- notifications: per-user in-app notifications
+-- ---------------------------------------------------------------------------
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null,
+  message text not null,
+  type text not null default 'info',
+  is_read boolean not null default false,
+  related_id text,
+  related_type text,
+  created_at timestamptz not null default now()
+);
+
 -- ============================================================================
 -- Automatic profile row on signup
 -- ============================================================================
@@ -123,6 +138,7 @@ alter table public.transactions  enable row level security;
 alter table public.budgets       enable row level security;
 alter table public.categories    enable row level security;
 alter table public.subscriptions enable row level security;
+alter table public.notifications enable row level security;
 
 -- profiles
 create policy "profiles_select_own" on public.profiles
@@ -174,6 +190,14 @@ create policy "subscriptions_update_own" on public.subscriptions
 create policy "subscriptions_delete_own" on public.subscriptions
   for delete using (auth.uid() = user_id);
 
+-- notifications
+create policy "notifications_select_own" on public.notifications
+  for select using (auth.uid() = user_id);
+create policy "notifications_insert_own" on public.notifications
+  for insert with check (auth.uid() = user_id);
+create policy "notifications_update_own" on public.notifications
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 -- ============================================================================
 -- Data API access: grant the authenticated role table privileges so PostgREST
 -- exposes these tables. (Row access is still enforced by the RLS policies above.)
@@ -184,3 +208,10 @@ grant select, insert, update, delete on public.transactions  to authenticated;
 grant select, insert, update, delete on public.budgets       to authenticated;
 grant select, insert, update, delete on public.categories    to authenticated;
 grant select, insert, update, delete on public.subscriptions to authenticated;
+grant select, insert, update on public.notifications         to authenticated;
+
+-- ============================================================================
+-- Realtime: expose the notifications table for live INSERT/UPDATE updates.
+-- (Nos recommends adding this so the client channel receives push events.)
+-- ============================================================================
+alter publication supabase_realtime add table public.notifications;

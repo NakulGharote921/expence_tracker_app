@@ -5,10 +5,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, Menu } from 'lucide-react';
 import Avatar from './Avatar';
-export default function Header({ notifications, markAsRead, clearNotifications, onOpenProfile, onToggleMobileSidebar, profileName, profilePhoto }) {
+export default function Header({ notifications, notifError, markAsRead, clearNotifications, onOpenProfile, onToggleMobileSidebar, profileName, profilePhoto }) {
     const [showNotifications, setShowNotifications] = useState(false);
     const notificationRef = useRef(null);
-    const unreadCount = notifications.filter(n => !n.read).length;
+    const list = notifications || [];
+    const unreadCount = list.filter(n => !n.read).length;
     useEffect(() => {
         function handleClickOutside(event) {
             if (notificationRef.current && !notificationRef.current.contains(event.target)) {
@@ -51,9 +52,11 @@ export default function Header({ notifications, markAsRead, clearNotifications, 
                   </button>)}
               </div>
               <div className="max-h-72 overflow-y-auto divide-y divide-[#141414]/10">
-                {notifications.length === 0 ? (<div className="p-6 text-center text-[#141414]/50 text-xs font-serif italic">
+                {notifError ? (<div className="p-6 text-center text-[#141414]/50 text-xs font-serif italic">
+                    Notifications couldn&apos;t be loaded. Please try again later.
+                  </div>) : list.length === 0 ? (<div className="p-6 text-center text-[#141414]/50 text-xs font-serif italic">
                     No active notifications.
-                  </div>) : (notifications.map((notif) => (<div key={notif.id} className={`p-3.5 hover:bg-[#E2E2D9]/30 transition-colors ${!notif.read ? 'bg-[#F27D26]/5 font-medium' : ''}`}>
+                  </div>) : (list.map((notif) => (<div key={notif.id} className={`p-3.5 hover:bg-[#E2E2D9]/30 transition-colors ${!notif.read ? 'bg-[#F27D26]/5 font-medium' : ''}`}>
                       <div className="flex gap-2.5 items-start">
                         {notif.type === 'alert' && (<div className="w-1.5 h-1.5 rounded-full bg-[#F27D26] mt-1.5 shrink-0"/>)}
                         <div className="flex-1 text-[11px]">
