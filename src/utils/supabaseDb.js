@@ -21,6 +21,31 @@ function formatNotifTime(iso) {
   return new Date(iso).toLocaleDateString();
 }
 
+// ---- helpers ---------------------------------------------------------------
+// Normalize a category for case-insensitive comparison while keeping the
+// original display string for the UI. One user must have a single budget per
+// category regardless of case (Food / FOOD / food are the same category).
+const normalizeCategory = (cat) => String(cat || '').trim().toLowerCase();
+
+// Collapse budget rows to one per user+category, keeping the highest limit so
+// a stale duplicate never silently drops a user's intended amount.
+const dedupeBudgets = (rows) => {
+  const seen = new Set();
+  const out = [];
+  (rows || []).forEach((r) => {
+    const key = normalizeCategory(r.category);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    const existing = out.find((o) => normalizeCategory(o.category) === key);
+    if (!existing) {
+      out.push(r);
+    } else if (Number(r.limit || 0) > Number(existing.limit || 0)) {
+      existing.limit = r.limit;
+    }
+  });
+  return out;
+};
+
 // ---- field mapping: app camelCase <-> DB snake_case -----------------------
 const toSnake = (obj, pairs) => {
   if (!obj) return obj;
@@ -197,17 +222,23 @@ export const supabaseDb = {
   async hydrateBudgets(userId) {
     const res = await hydrateRows('budgets', userId);
     if (res.error || !res.data) return res;
+    const rows = dedupeBudgets(res.data);
     return {
-      data: res.data.map((r) => ({
+      data: rows.map((r) => ({
         category: r.category,
-        limit: r.limit_amount,
-        spent: r.spent,
+        limit: Number(r.limit_amount) || 0,
+        spent: Number(r.spent) || 0,
       })),
       error: null,
     };
   },
   async reconcileBudgets(userId, rows) {
-    const data = (rows || []).map((r) => ({
+    const deduped = dedupeBudgets((rows || []).map((r) => ({
+      category: r.category,
+      limit: r.limit,
+      spent: r.spent,
+    })));
+    const data = deduped.map((r) => ({
       user_id: userId,
       category: r.category,
       limit_amount: r.limit,

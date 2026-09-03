@@ -25,6 +25,17 @@ import { INITIAL_CATEGORIES, INITIAL_TRANSACTIONS, INITIAL_BUDGETS } from '../mo
 import { supabaseDb } from '../utils/supabaseDb';
 import { useAuth } from '../context/AuthContext';
 
+// Case-insensitive category matching so Food / FOOD / food are one category
+// (display name preserved; comparison normalized).
+const normCat = (c) => String(c || '').trim().toLowerCase();
+
+// Compute a budget's spent amount from the current user's expense transactions,
+// matching category case-insensitively and counting ONLY type === 'expense'.
+const budgetSpent = (category, transactions) =>
+    (transactions || [])
+        .filter((t) => t.type === 'expense' && normCat(t.category) === normCat(category))
+        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
 export default function DashboardPage({ userId }) {
     const location = useLocation();
     const navigate = useNavigate();
@@ -36,6 +47,9 @@ export default function DashboardPage({ userId }) {
     const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
     const [categories, setCategories] = useState(INITIAL_CATEGORIES);
     const [budgets, setBudgets] = useState(INITIAL_BUDGETS);
+    // Loading flag so we never show ₹0.00 (empty) while real data is still
+    // being fetched from Supabase.
+    const [budgetsLoaded, setBudgetsLoaded] = useState(false);
     const [subscriptions, setSubscriptions] = useState([]);
     // Notification store: starts empty, hydrated + kept in sync with Supabase.
     const [notifications, setNotifications] = useState([]);
@@ -83,7 +97,7 @@ export default function DashboardPage({ userId }) {
 
             if (t.data?.length) setTransactions(t.data);
             if (c.data && Object.keys(c.data).length) setCategories(c.data);
-            if (b.data?.length) setBudgets(b.data);
+            if (b.data) { setBudgets(b.data); setBudgetsLoaded(true); }
             if (s.data?.length) setSubscriptions(s.data);
 
             if (p.data) {
@@ -224,11 +238,14 @@ export default function DashboardPage({ userId }) {
     };
     // Auto trigger warnings if budgets surpass limits
     useEffect(() => {
-        // Recalculate spent amounts for all active budgets dynamically based on present transactions list
+        // Wait until both budgets and transactions have been hydrated from
+        // Supabase. Without this guard the effect could run while transactions
+        // is still empty and wrongly reset every budget's spent to ₹0.00.
+        if (!budgetsLoaded || !hydrated) return;
+        // Recalculate spent amounts dynamically from the user's expense
+        // transactions (type === 'expense', case-insensitive category match).
         const updatedBudgets = budgets.map(b => {
-            const expensesInCat = transactions
-                .filter(t => t.category === b.category && t.type === 'expense')
-                .reduce((sum, item) => sum + item.amount, 0);
+            const expensesInCat = budgetSpent(b.category, transactions);
             return {
                 ...b,
                 spent: expensesInCat
@@ -261,7 +278,7 @@ export default function DashboardPage({ userId }) {
             setBudgets(updatedBudgets);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [transactions, budgets, notifications]);
+    }, [transactions, budgets, notifications, budgetsLoaded, hydrated]);
 
     // Subscription due-soon reminders (deduped per subscription + billing date).
     useEffect(() => {
@@ -342,8 +359,9 @@ export default function DashboardPage({ userId }) {
 
     const handleDeleteBudget = (category) => {
         requestConfirmation('Delete this budget?', `Remove the budget limit for "${category}"? This can't be undone.`, async () => {
-            const next = budgets.filter(b => b.category !== category);
+            const next = budgets.filter(b => normCat(b.category) !== normCat(category));
             setBudgets(next);
+            setBudgetsLoaded(true);
             writeBudgets(next)?.catch(() => { });
             triggerToast(`Budget for ${category} deleted.`);
         });
@@ -386,27 +404,36 @@ export default function DashboardPage({ userId }) {
     };
 
     const handleUpdateBudget = (category, newLimit) => {
+        // Update the existing record (matched case-insensitively) so editing
+        // Food → ₹7,000 updates the same row instead of creating another.
         const next = budgets.map(b => {
-            if (b.category === category) {
-                return { ...b, limit: newLimit };
+            if (normCat(b.category) === normCat(category)) {
+                return { ...b, limit: newLimit, spent: budgetSpent(b.category, transactions) };
             }
             return b;
         });
         setBudgets(next);
+        setBudgetsLoaded(true);
         writeBudgets(next)?.catch(() => { });
         triggerToast(`Budget for ${category} updated to ₹${newLimit}.`);
     };
 
     const handleAddBudget = (category, limit) => {
+        // One budget per user+category (case-insensitive). Never create a
+        // duplicate FOOD budget just because the case differs.
+        const existing = budgets.find((b) => normCat(b.category) === normCat(category));
+        if (existing) {
+            triggerToast(`Budget for ${category} already exists.`);
+            return;
+        }
         const newBudget = {
             category,
             limit,
-            spent: transactions
-                .filter(t => t.category === category && t.type === 'expense')
-                .reduce((sum, item) => sum + item.amount, 0)
+            spent: budgetSpent(category, transactions)
         };
         const next = [...budgets, newBudget];
         setBudgets(next);
+        setBudgetsLoaded(true);
         writeBudgets(next)?.catch(() => { });
         triggerToast(`Budget added for ${category}!`);
     };
@@ -784,7 +811,7 @@ export default function DashboardPage({ userId }) {
             </div>)}
 
           {activeTab === 'budgets' && (<div className="animate-fade-in">
-              <BudgetsTab budgets={budgets} categories={categories} onUpdateBudget={handleUpdateBudget} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget}/>
+              <BudgetsTab budgets={budgets} budgetsLoaded={budgetsLoaded} categories={categories} onUpdateBudget={handleUpdateBudget} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget}/>
             </div>)}
 
           {activeTab === 'categories' && (<div className="animate-fade-in">

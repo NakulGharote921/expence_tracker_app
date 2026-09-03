@@ -4,7 +4,7 @@
  */
 import React, { useState } from 'react';
 import { Wallet, AlertTriangle, PenTool, Plus, CheckCircle2, Trash2 } from 'lucide-react';
-export default function BudgetsTab({ budgets, categories, onUpdateBudget, onAddBudget, onDeleteBudget }) {
+export default function BudgetsTab({ budgets, budgetsLoaded, categories, onUpdateBudget, onAddBudget, onDeleteBudget }) {
     const [editingCategory, setEditingCategory] = useState(null);
     const [editLimit, setEditLimit] = useState('');
     const [showAddBudget, setShowAddBudget] = useState(false);
@@ -81,14 +81,19 @@ export default function BudgetsTab({ budgets, categories, onUpdateBudget, onAddB
 
       {/* Grid of Budgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="budgets-card-grid">
-        {budgets.map((b) => {
+        {!budgetsLoaded ? (<div className="rounded-none border border-[#141414] p-8 text-center text-sm text-[#141414]/70 font-mono">
+            Loading budgets...
+          </div>) : budgets.length === 0 ? (<div className="rounded-none border border-[#141414] p-8 text-center text-sm text-[#141414]/70 font-mono">
+            No budgets yet. Add your first spending limit above to get started.
+          </div>) : budgets.map((b) => {
             const categoryMeta = categories[b.category] || { color: '#999', bgLight: 'bg-slate-100', iconName: 'HelpCircle' };
-            const percentage = Math.round((b.spent / b.limit) * 100);
+            const percentage = b.limit > 0 ? Math.round((b.spent / b.limit) * 100) : 0;
             let level = 'safe';
-            if (percentage >= 95) {
-                level = 'critical';
-            }
-            else if (percentage >= 80) {
+            if (percentage > 100) {
+                level = 'over';
+            } else if (percentage >= 90) {
+                level = 'near';
+            } else if (percentage >= 70) {
                 level = 'warning';
             }
             const isEditing = editingCategory === b.category;
@@ -96,12 +101,15 @@ export default function BudgetsTab({ budgets, categories, onUpdateBudget, onAddB
             let borderShadowClass = 'border-[#141414] hover:shadow-[4px_4px_0px_0px_#141414]';
             let progressColorClass = 'bg-[#16a34a]'; // safe
             let pctTextClass = 'text-[#16a34a]/85';
-            if (level === 'critical') {
+            if (level === 'over') {
                 borderShadowClass = 'border-red-650 shadow-[4px_4px_0px_0px_#dc2626]';
                 progressColorClass = 'bg-red-650 animate-pulse';
                 pctTextClass = 'text-red-600 font-extrabold';
-            }
-            else if (level === 'warning') {
+            } else if (level === 'near') {
+                borderShadowClass = 'border-amber-600 shadow-[4px_4px_0px_0px_#d97706]';
+                progressColorClass = 'bg-amber-500';
+                pctTextClass = 'text-amber-600 font-extrabold';
+            } else if (level === 'warning') {
                 borderShadowClass = 'border-[#F27D26] shadow-[4px_4px_0px_0px_#F27D26]';
                 progressColorClass = 'bg-[#F27D26]';
                 pctTextClass = 'text-[#F27D26] font-extrabold';
@@ -117,17 +125,20 @@ export default function BudgetsTab({ budgets, categories, onUpdateBudget, onAddB
                         {b.category}
                       </h3>
                       
-                      {/* Visual Status Indicator Badge */}
-                      {level === 'critical' ? (<span className="flex items-center gap-1 px-1.5 py-0.5 bg-red-100 border border-red-600 text-red-600 text-[8px] font-mono font-bold tracking-widest uppercase">
-                          <AlertTriangle className="w-2.5 h-2.5 text-red-600 animate-bounce"/>
-                          CRIT 95%
-                        </span>) : level === 'warning' ? (<span className="flex items-center gap-1 px-1.5 py-0.5 bg-[#F27D26]/15 border border-[#F27D26] text-[#F27D26] text-[8px] font-mono font-bold tracking-widest uppercase animate-pulse">
-                          <AlertTriangle className="w-2.5 h-2.5 text-[#F27D26]"/>
-                          WARN 80%
-                        </span>) : (<span className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 border border-[#16a34a] text-[#16a34a] text-[8px] font-mono font-bold tracking-widest uppercase">
-                          <CheckCircle2 className="w-2.5 h-2.5 text-[#16a34a]"/>
-                          SAFE
-                        </span>)}
+                       {/* Visual Status Indicator Badge */}
+                       {level === 'over' ? (<span className="flex items-center gap-1 px-1.5 py-0.5 bg-red-100 border border-red-600 text-red-600 text-[8px] font-mono font-bold tracking-widest uppercase">
+                           <AlertTriangle className="w-2.5 h-2.5 text-red-600 animate-bounce"/>
+                           OVER BUDGET
+                         </span>) : level === 'near' ? (<span className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 border border-amber-600 text-amber-600 text-[8px] font-mono font-bold tracking-widest uppercase animate-pulse">
+                           <AlertTriangle className="w-2.5 h-2.5 text-amber-500"/>
+                           NEAR LIMIT
+                         </span>) : level === 'warning' ? (<span className="flex items-center gap-1 px-1.5 py-0.5 bg-[#F27D26]/15 border border-[#F27D26] text-[#F27D26] text-[8px] font-mono font-bold tracking-widest uppercase animate-pulse">
+                           <AlertTriangle className="w-2.5 h-2.5 text-[#F27D26]"/>
+                           WARNING
+                         </span>) : (<span className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 border border-[#16a34a] text-[#16a34a] text-[8px] font-mono font-bold tracking-widest uppercase">
+                           <CheckCircle2 className="w-2.5 h-2.5 text-[#16a34a]"/>
+                           SAFE / ON TRACK
+                         </span>)}
                     </div>
                   </div>
 
@@ -166,16 +177,19 @@ export default function BudgetsTab({ budgets, categories, onUpdateBudget, onAddB
 
               {/* Warnings and alerts */}
               <div className="mt-4 pt-3.5 border-t border-[#141414]/15 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
-                {level === 'critical' ? (<div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider uppercase font-black text-red-600">
-                    <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0"/>
-                    <span>Over budget!</span>
-                  </div>) : level === 'warning' ? (<div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider uppercase font-extrabold text-[#F27D26]">
-                    <AlertTriangle className="w-3.5 h-3.5 text-[#F27D26] shrink-0"/>
-                    <span>Almost at your limit</span>
-                  </div>) : (<div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider uppercase font-extrabold text-[#16a34a]">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#16a34a] shrink-0"/>
-                    <span>On track</span>
-                  </div>)}
+                 {level === 'over' ? (<div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider uppercase font-black text-red-600">
+                     <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0"/>
+                     <span>Over budget!</span>
+                   </div>) : level === 'near' ? (<div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider uppercase font-extrabold text-amber-600">
+                     <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0"/>
+                     <span>Near limit</span>
+                   </div>) : level === 'warning' ? (<div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider uppercase font-extrabold text-[#F27D26]">
+                     <AlertTriangle className="w-3.5 h-3.5 text-[#F27D26] shrink-0"/>
+                     <span>Almost at your limit</span>
+                   </div>) : (<div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider uppercase font-extrabold text-[#16a34a]">
+                     <CheckCircle2 className="w-3.5 h-3.5 text-[#16a34a] shrink-0"/>
+                     <span>On track</span>
+                   </div>)}
 
                 {isEditing ? (<div className="flex gap-1.5 self-end">
                     <button onClick={() => saveEdit(b.category)} className="bg-[#141414] hover:bg-[#16a34a] text-white font-mono font-bold text-[9px] tracking-wider uppercase py-1 px-3 border border-[#141414] transition-all cursor-pointer">
