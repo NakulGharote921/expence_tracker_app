@@ -116,14 +116,16 @@ export const extractExpenseData = async (userInput, userCategories = []) => {
  * Normalize and validate extracted data
  */
 const normalizeExtractedData = (data, today) => {
+  const paymentMethod = ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Bank Transfer'].includes(data.payment_method)
+    ? data.payment_method
+    : null;
   return {
     amount: typeof data.amount === 'number' && data.amount > 0 ? data.amount : null,
     type: ['expense', 'income'].includes(data.type) ? data.type : 'expense',
     category: data.category || 'Other',
     date: data.date && !isNaN(Date.parse(data.date)) ? data.date : today,
-    payment_method: ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Bank Transfer'].includes(data.payment_method)
-      ? data.payment_method
-      : null,
+    payment_method: paymentMethod,
+    paymentMethod,
     description: data.description || '',
     confidence: typeof data.confidence === 'number' ? Math.min(1, Math.max(0, data.confidence)) : 0.5
   };

@@ -125,10 +125,14 @@ export default function AIEntryModal({ isOpen, onClose, onSave, categories }) {
     // Add source and confidence metadata
     const transactionData = {
       ...dataToSave,
+      // Normalize payment_method (from AI) → paymentMethod (app convention).
+      // The DB layer maps paymentMethod → payment_method in Supabase.
+      paymentMethod: dataToSave.paymentMethod || dataToSave.payment_method || null,
       source: 'ai',
       ai_confidence: dataToSave.confidence,
       name: dataToSave.description || `${dataToSave.category} expense`
     };
+    delete transactionData.payment_method;
 
     onSave(transactionData);
     onClose();
