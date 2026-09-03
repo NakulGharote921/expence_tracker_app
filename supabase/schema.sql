@@ -38,8 +38,18 @@ create table if not exists public.transactions (
   description text,
   payment_method text,
   date text not null,
+  source text default 'manual',
+  ai_confidence numeric,
   created_at timestamptz not null default now()
 );
+
+-- Add check constraint for source field
+do $$ begin
+  alter table public.transactions
+    add constraint transactions_source_check
+    check (source in ('manual', 'ai', 'receipt', 'import'));
+exception when duplicate_object then null;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- budgets

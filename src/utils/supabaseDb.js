@@ -48,6 +48,8 @@ const TX_FIELD_PAIRS = [
   ['description', 'description'],
   ['paymentMethod', 'payment_method'],
   ['date', 'date'],
+  ['source', 'source'],
+  ['aiConfidence', 'ai_confidence'],
 ];
 
 const SUB_FIELD_PAIRS = [

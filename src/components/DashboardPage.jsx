@@ -12,6 +12,7 @@ import ExpenseForm from './ExpenseForm';
 import ExpenseHistory from './ExpenseHistory';
 import Breakdown from './Breakdown';
 import WeeklyTips from './WeeklyTips';
+import AIEntryModal from './AIEntryModal';
 // Tab views
 import TransactionsTab from './TransactionsTab';
 import BudgetsTab from './BudgetsTab';
@@ -59,6 +60,7 @@ export default function DashboardPage({ userId }) {
     const [showSupportModal, setShowSupportModal] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [showAIEntryModal, setShowAIEntryModal] = useState(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     // Form templates inside modes
     const [supportText, setSupportText] = useState('');
@@ -300,6 +302,8 @@ export default function DashboardPage({ userId }) {
             date: new Date().toISOString().split('T')[0],
             type: 'expense',
             paymentMethod: paymentMethod || '',
+            source: 'manual',
+            aiConfidence: null
         };
         const next = [newTx, ...transactions];
         setTransactions(next);
@@ -348,16 +352,21 @@ export default function DashboardPage({ userId }) {
     const handleAddTransactionFull = (txData) => {
         const newTx = {
             id: `tx-${Date.now()}`,
-            ...txData
+            ...txData,
+            source: txData.source || 'manual',
+            aiConfidence: txData.ai_confidence || null
         };
         const next = [newTx, ...transactions];
         setTransactions(next);
         writeTransactions(next)?.catch(() => { });
-        triggerToast(`Successfully recorded transaction: "${txData.name}"`);
+        
+        const sourceLabel = txData.source === 'ai' ? ' via AI' : '';
+        triggerToast(`Successfully recorded${sourceLabel} transaction: "${txData.name}"`);
+        
         const amount = Number(txData.amount) || 0;
         notify(
             txData.type === 'income' ? 'Income Added' : 'Transaction Added',
-            `Your ₹${amount.toFixed(2)} ${txData.type === 'income' ? 'income' : 'expense'} was recorded successfully.`,
+            `Your ₹${amount.toFixed(2)} ${txData.type === 'income' ? 'income' : 'expense'}${sourceLabel} was recorded successfully.`,
             txData.type === 'income' ? 'success' : 'info',
             newTx.id,
             'transaction'
@@ -745,6 +754,15 @@ export default function DashboardPage({ userId }) {
                 
                 {/* Left side actions & log */}
                 <div className="md:col-span-2 xl:col-span-2 space-y-4 sm:space-y-5 md:space-y-6">
+                  {/* AI Entry Button */}
+                  <button
+                    onClick={() => setShowAIEntryModal(true)}
+                    className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-mono text-[11px] uppercase tracking-wider font-bold border-2 border-[#141414] hover:from-purple-700 hover:to-blue-700 hover:shadow-[4px_4px_0px_0px_#141414] transition-all"
+                  >
+                    <Sparkles className="w-5 h-5" />
+                    AI Add Expense
+                  </button>
+                  
                   <ExpenseForm categories={Object.keys(categories)} onAddExpense={handleAddExpense}/>
                   
                   <ExpenseHistory transactions={transactions} categories={categories} onDeleteTransaction={handleDeleteTransaction} onViewAll={() => navigate('/transactions')}/>
@@ -856,6 +874,14 @@ export default function DashboardPage({ userId }) {
         triggerToast={triggerToast}
         writeTargetBudget={writeTargetBudget}
         onOpenUpgrade={() => setShowUpgradeModal(true)}
+      />
+
+      {/* AI Entry Modal */}
+      <AIEntryModal
+        isOpen={showAIEntryModal}
+        onClose={() => setShowAIEntryModal(false)}
+        onSave={handleAddTransactionFull}
+        categories={categories}
       />
 
       {/* Upgrade Plan Overlay Dialog */}
