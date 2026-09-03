@@ -54,7 +54,7 @@ export const getMissingFieldMessage = (fieldName) => {
  * Get placeholder text for amount input
  */
 export const getAmountPlaceholder = () => {
-  return "Enter amount in ₹";
+  return "e.g. ₹500";
 };
 
 /**
@@ -64,27 +64,27 @@ export const validateTransaction = (data) => {
   const errors = [];
 
   if (!data.amount || data.amount <= 0) {
-    errors.push('Amount must be greater than 0');
+    errors.push('Please enter an amount greater than 0');
   }
 
   if (typeof data.amount !== 'number') {
-    errors.push('Amount must be a valid number');
+    errors.push('Please enter a valid amount');
   }
 
   if (!data.category || data.category.trim().length === 0) {
-    errors.push('Category is required');
+    errors.push('Please select a category');
   }
 
   if (!data.date || isNaN(Date.parse(data.date))) {
-    errors.push('Valid date is required');
+    errors.push('Please select a valid date');
   }
 
   if (!data.payment_method || !PAYMENT_METHODS.includes(data.payment_method)) {
-    errors.push('Valid payment method is required');
+    errors.push('Please select how you paid');
   }
 
   if (!['expense', 'income'].includes(data.type)) {
-    errors.push('Type must be either expense or income');
+    errors.push('Please choose expense or income');
   }
 
   return errors;

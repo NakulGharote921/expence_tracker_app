@@ -63,13 +63,13 @@ export default function CategoriesTab({ categories, transactions, onAddCategory 
       {/* Title header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#141414]/15 pb-4">
         <div>
-          <h2 className="text-4xl font-serif italic font-semibold text-[#141414] tracking-tight">System Ledger Classifications</h2>
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#141414]/60 mt-2">CONFIGURE NAME HEADERS, REPRESENTATIONAL ICONS, AND COLOR BADGES DYNAMICALLY</p>
+          <h2 className="text-4xl font-serif italic font-semibold text-[#141414] tracking-tight">Your Categories</h2>
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#141414]/60 mt-2">Customize the names, icons, and colors for your expense categories</p>
         </div>
 
         <button id="btn-add-category-trigger" onClick={() => setShowAddForm(!showAddForm)} className="bg-[#141414] text-white hover:bg-[#F27D26] rounded-none text-[10px] font-mono tracking-widest font-bold uppercase py-2 px-4 flex items-center gap-2 border border-[#141414] transition-all outline-none cursor-pointer">
           <Plus className="w-3.5 h-3.5"/>
-          Add Category Head
+          Add Category
         </button>
       </div>
 
@@ -77,7 +77,7 @@ export default function CategoriesTab({ categories, transactions, onAddCategory 
           <div className="flex justify-between items-center pb-2 border-b border-[#141414]/15">
             <span className="text-[10px] font-mono tracking-[0.2em] font-bold text-[#141414] flex items-center gap-2">
               <Tags className="w-4 h-4 text-[#F27D26]"/>
-              CONFIGURE CUSTOM CATEGORY PARAMETERS
+              New Category
             </span>
             <button type="button" onClick={() => setShowAddForm(false)} className="text-[#141414]/60 hover:text-[#141414] text-xs font-mono font-bold tracking-wider cursor-pointer">
               [✕ CLOSE]
@@ -91,12 +91,12 @@ export default function CategoriesTab({ categories, transactions, onAddCategory 
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-[9px] font-mono font-bold text-[#141414]/60 mb-1.5 px-0.5 uppercase tracking-wider">Category Header Name</label>
+              <label className="block text-[9px] font-mono font-bold text-[#141414]/60 mb-1.5 px-0.5 uppercase tracking-wider">Category name</label>
               <input type="text" value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder="e.g. Healthcare" className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white text-xs rounded-none py-2 px-3 outline-none font-semibold text-[#141414]" required/>
             </div>
 
             <div>
-              <label className="block text-[9px] font-mono font-bold text-[#141414]/60 mb-1.5 px-0.5 uppercase tracking-wider">Associated Representation Icon</label>
+              <label className="block text-[9px] font-mono font-bold text-[#141414]/60 mb-1.5 px-0.5 uppercase tracking-wider">Icon</label>
               <select value={newIcon} onChange={e => setNewIcon(e.target.value)} className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white text-xs rounded-none py-2.5 px-3 outline-none text-[#141414] font-bold uppercase tracking-wider">
                 {iconOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
               </select>
@@ -104,7 +104,7 @@ export default function CategoriesTab({ categories, transactions, onAddCategory 
 
             {/* Custom Color Bullet Picker */}
             <div>
-              <label className="block text-[9px] font-mono font-bold text-[#141414]/60 mb-1.5 px-0.5 uppercase tracking-wider">Assign Theme Color</label>
+              <label className="block text-[9px] font-mono font-bold text-[#141414]/60 mb-1.5 px-0.5 uppercase tracking-wider">Color</label>
               <div className="flex items-center gap-1.5 flex-wrap bg-[#EBEBE4] p-1.5 rounded-none border border-[#141414]">
                 {paletteColors.map(colorCode => (<button key={colorCode} type="button" onClick={() => setNewColor(colorCode)} className="w-5.5 h-5.5 rounded-full border border-black/15 transition-transform relative cursor-pointer" style={{ backgroundColor: colorCode }}>
                     {newColor === colorCode && (<span className="absolute inset-0 bg-white/30 rounded-full flex items-center justify-center text-[8px] font-black">
@@ -120,7 +120,7 @@ export default function CategoriesTab({ categories, transactions, onAddCategory 
               [CANCEL]
             </button>
             <button type="submit" className="bg-[#141414] hover:bg-[#F27D26] text-white text-[10px] font-mono font-bold uppercase tracking-widest py-2 px-5 rounded-none border border-[#141414] transition-all cursor-pointer">
-              Register Category
+              Save Category
             </button>
           </div>
         </form>)}
@@ -146,7 +146,7 @@ export default function CategoriesTab({ categories, transactions, onAddCategory 
                   {catKey}
                 </h3>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#141414]/60 font-mono uppercase tracking-wider font-semibold">Spent Total:</span>
+                  <span className="text-xs text-[#141414]/60 font-mono uppercase tracking-wider font-semibold">Total spent:</span>
                   <span className="font-mono text-sm font-bold text-[#141414]">
                     ₹{spentObj.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
@@ -154,7 +154,7 @@ export default function CategoriesTab({ categories, transactions, onAddCategory 
               </div>
 
               <div className="mt-4 pt-3.5 border-t border-[#141414]/15 flex items-center justify-between">
-                <span className="text-[9px] font-mono text-[#141414]/50 uppercase">HEX REF: {cat.color}</span>
+                <span className="text-[9px] font-mono text-[#141414]/50 uppercase">Color: {cat.color}</span>
                 <span className="w-3.5 h-3.5 rounded-full inline-block shrink-0 border border-[#141414]" style={{ backgroundColor: cat.color }}/>
               </div>
             </div>);

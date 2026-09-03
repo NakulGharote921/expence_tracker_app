@@ -59,7 +59,7 @@ export default function AIEntryModal({ isOpen, onClose, onSave, categories }) {
   // Handle AI analysis
   const handleAnalyze = async () => {
     if (!userInput.trim()) {
-      setError('Please enter something to analyze');
+      setError('Please describe your expense first');
       return;
     }
 
@@ -79,7 +79,7 @@ export default function AIEntryModal({ isOpen, onClose, onSave, categories }) {
       const missing = detectMissingFields(data);
       setMissingFields(missing);
     } catch (err) {
-      setError(err.message || 'Failed to analyze input. Please try again.');
+      setError(err.message || "Couldn't understand that. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -170,7 +170,7 @@ export default function AIEntryModal({ isOpen, onClose, onSave, categories }) {
                 AI Entry
               </h3>
               <p className="text-[9px] font-mono uppercase tracking-wider text-[#141414]/50">
-                Natural Language Processing
+                Just type what you spent on
               </p>
             </div>
           </div>
@@ -190,7 +190,7 @@ export default function AIEntryModal({ isOpen, onClose, onSave, categories }) {
             <div className="space-y-4">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-2">
-                  What did you spend on?
+                  What would you like to add?
                 </label>
                 <textarea
                   ref={inputRef}
@@ -221,7 +221,7 @@ export default function AIEntryModal({ isOpen, onClose, onSave, categories }) {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Analyzing...
+                    Thinking...
                   </>
                 ) : (
                   <>
@@ -265,7 +265,7 @@ export default function AIEntryModal({ isOpen, onClose, onSave, categories }) {
                 <div className="flex items-center justify-between p-3 bg-[#EBEBE4] border border-[#141414]/10">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-600" />
-                    <span className="text-xs font-bold text-[#141414]">AI Analysis Complete</span>
+                    <span className="text-xs font-bold text-[#141414]">Got it!</span>
                   </div>
                   <span className={`text-[10px] font-mono uppercase tracking-wider font-bold ${confidenceInfo.color}`}>
                     {confidenceInfo.label} Confidence
@@ -290,7 +290,7 @@ export default function AIEntryModal({ isOpen, onClose, onSave, categories }) {
                   {missingFields.includes('payment_method') && (
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-[#141414]/60">
-                        Select Payment Method
+                        How did you pay?
                       </label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {PAYMENT_METHODS.map((method) => {
@@ -314,14 +314,14 @@ export default function AIEntryModal({ isOpen, onClose, onSave, categories }) {
                   {missingFields.includes('amount') && (
                     <div className="mt-3">
                       <label className="text-[10px] font-bold uppercase tracking-wider text-[#141414]/60 mb-1 block">
-                        Amount (₹)
+                        Amount
                       </label>
                       <input
                         type="number"
                         value={editData?.amount || ''}
                         onChange={(e) => handleFieldUpdate('amount', parseFloat(e.target.value) || null)}
                         className="w-full px-3 py-2 border border-[#141414] text-sm font-mono font-bold focus:outline-none focus:border-[#F27D26]"
-                        placeholder="Enter amount"
+                        placeholder="e.g. 500"
                         min="0"
                         step="0.01"
                       />
@@ -334,7 +334,7 @@ export default function AIEntryModal({ isOpen, onClose, onSave, categories }) {
               <div className="border-2 border-[#141414] bg-white">
                 <div className="px-4 py-3 bg-[#141414] text-white flex items-center justify-between">
                   <span className="text-[10px] font-mono uppercase tracking-wider font-bold">
-                    Extracted Data
+Here's what I understood
                   </span>
                   <button
                     onClick={toggleEdit}
@@ -488,7 +488,7 @@ export default function AIEntryModal({ isOpen, onClose, onSave, categories }) {
               }}
               className="flex-1 px-4 py-2.5 border border-[#141414] text-[#141414] font-mono text-[10px] uppercase tracking-wider font-bold hover:bg-[#141414]/10 transition-colors"
             >
-              New Entry
+              Start Over
             </button>
             <button
               onClick={handleConfirm}
@@ -496,7 +496,7 @@ export default function AIEntryModal({ isOpen, onClose, onSave, categories }) {
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#141414] text-white font-mono text-[10px] uppercase tracking-wider font-bold border-2 border-[#141414] hover:bg-[#F27D26] hover:border-[#F27D26] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle className="w-4 h-4" />
-              Confirm & Save
+              Save
             </button>
           </div>
         )}

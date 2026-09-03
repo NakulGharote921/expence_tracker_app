@@ -140,17 +140,17 @@ export default function ReportsTab({ transactions, categories }) {
       {/* Title */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-[#141414]/15 pb-4">
         <div>
-          <h2 className="text-4xl font-serif italic font-semibold text-[#141414] tracking-tight">Fintech Performance Analytics</h2>
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#141414]/60 mt-2">STAGGERING CORPORATE GRAPHICS TRACKING CASH OUTLAYS, TRENDS, AND BUDGET METRICS</p>
+          <h2 className="text-4xl font-serif italic font-semibold text-[#141414] tracking-tight">Spending Insights</h2>
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#141414]/60 mt-2">See where your money is going with charts and trends</p>
         </div>
 
         {/* Chart View selector */}
         <div className="flex bg-[#EBEBE4] p-1 border border-[#141414] rounded-none w-fit shrink-0 self-start">
           <button id="btn-report-chart-cat" onClick={() => setActiveChart('category')} className={`text-[9px] font-mono tracking-wider uppercase font-bold py-1.5 px-4 rounded-none transition-all cursor-pointer ${activeChart === 'category' ? 'bg-[#141414] text-white' : 'text-[#141414]/70 hover:bg-[#141414]/10'}`}>
-            Categories Distribution
+            By Category
           </button>
           <button id="btn-report-chart-trend" onClick={() => setActiveChart('trend')} className={`text-[9px] font-mono tracking-wider uppercase font-bold py-1.5 px-4 rounded-none transition-all cursor-pointer ${activeChart === 'trend' ? 'bg-[#141414] text-white' : 'text-[#141414]/70 hover:bg-[#141414]/10'}`}>
-            Daily Expense Stream
+            Daily Trend
           </button>
         </div>
       </div>
@@ -161,52 +161,52 @@ export default function ReportsTab({ transactions, categories }) {
         {/* Metric Card */}
         <div className="bg-white p-4 rounded-none border border-[#141414] hover:shadow-[3px_3px_0px_0px_#141414] transition-all">
           <p className="text-[9px] font-mono font-bold text-[#141414]/60 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-            <IndianRupee className="w-3.5 h-3.5 text-[#F27D26]"/> Net Monthly Savings
+            <IndianRupee className="w-3.5 h-3.5 text-[#F27D26]"/> Money Saved
           </p>
           <p className="font-serif italic font-bold text-2xl text-[#141414]">
             ₹{netSavings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="text-[9px] font-mono font-bold text-[#16a34a] mt-1">
-            Savings quota: {savingsRate}%
+            Savings rate: {savingsRate}%
           </p>
         </div>
 
         {/* Metric Card */}
         <div className="bg-white p-4 rounded-none border border-[#141414] hover:shadow-[3px_3px_0px_0px_#141414] transition-all">
           <p className="text-[9px] font-mono font-bold text-[#141414]/60 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 text-[#F27D26]"/> Average Spend Size
+            <TrendingUp className="w-3.5 h-3.5 text-[#F27D26]"/> Average Expense
           </p>
           <p className="font-serif italic font-bold text-2xl text-[#141414]">
             ₹{averageCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="text-[9px] font-mono font-bold text-[#141414]/50 mt-1">
-            Computed across {expenses.length} values
+            From {expenses.length} expenses
           </p>
         </div>
 
         {/* Metric Card */}
         <div className="bg-white p-4 rounded-none border border-[#141414] hover:shadow-[3px_3px_0px_0px_#141414] transition-all">
           <p className="text-[9px] font-mono font-bold text-[#141414]/60 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-[#F27D26]"/> Highest Single Spent
+            <Layers className="w-3.5 h-3.5 text-[#F27D26]"/> Biggest Expense
           </p>
           <p className="font-serif italic font-bold text-2xl text-[#141414]">
             ₹{singleHighest.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="text-[9px] font-mono font-bold text-red-650 mt-1">
-            Delta booking / campaign
+            Your largest single expense
           </p>
         </div>
 
         {/* Metric Card */}
         <div className="bg-white p-4 rounded-none border border-[#141414] hover:shadow-[3px_3px_0px_0px_#141414] transition-all">
           <p className="text-[9px] font-mono font-bold text-[#141414]/60 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-            <CalendarCheck className="w-3.5 h-3.5 text-[#F27D26]"/> Audit Records Logged
+            <CalendarCheck className="w-3.5 h-3.5 text-[#F27D26]"/> Total Entries
           </p>
           <p className="font-serif italic font-bold text-2xl text-[#141414]">
             {transactions.length} records
           </p>
           <p className="text-[9px] font-mono font-bold text-[#16a34a] mt-1">
-            100% cloud secure metrics
+            All data saved securely
           </p>
         </div>
       </div>
@@ -218,11 +218,11 @@ export default function ReportsTab({ transactions, categories }) {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-8 border-b border-[#141414]/10 pb-4">
               <div>
                 <h3 className="text-xs font-mono font-bold text-[#141414] uppercase tracking-wider">
-                  EXPENSE TOTALS BY CATEGORY CLASSIFICATION
+                  Spending by Category
                 </h3>
-                <p className="text-[8px] font-mono text-[#141414]/40 mt-1">Total Spend: ₹{totalExpense.toLocaleString('en-US', { maximumFractionDigits: 0 })}</p>
+                <p className="text-[8px] font-mono text-[#141414]/40 mt-1">Total spent: ₹{totalExpense.toLocaleString('en-US', { maximumFractionDigits: 0 })}</p>
               </div>
-              <span className="text-[9px] font-mono text-[#141414]/55 uppercase">Sorted highest spend to lowest</span>
+              <span className="text-[9px] font-mono text-[#141414]/55 uppercase">Sorted by highest to lowest</span>
             </div>
 
             {/* Custom Responsive Bar Chart - Improved Layout */}
@@ -286,7 +286,7 @@ export default function ReportsTab({ transactions, categories }) {
 
             {/* Enhanced Legend Block */}
             <div className="mt-8 pt-6 border-t border-[#141414]/10">
-              <p className="text-[8px] font-mono text-[#141414]/50 uppercase tracking-wider mb-3">Category Breakdown</p>
+              <p className="text-[8px] font-mono text-[#141414]/50 uppercase tracking-wider mb-3">Breakdown</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                 {categoryBarData.map((c) => {
                 const percentage = totalExpense > 0 ? Math.round((c.amount / totalExpense) * 100) : 0;
@@ -304,9 +304,9 @@ export default function ReportsTab({ transactions, categories }) {
           </div>) : (<div>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6 border-b border-[#141414]/10 pb-4">
               <h3 className="text-xs font-mono font-bold text-[#141414] uppercase tracking-wider">
-                DAILY RUNNING COST STREAM (LAST 15 DAYS)
+                Daily Spending (Last 15 Days)
               </h3>
-              <span className="text-[9px] font-mono text-[#141414]/55 uppercase">Daily Aggregate (INR)</span>
+              <span className="text-[9px] font-mono text-[#141414]/55 uppercase">Daily total</span>
             </div>
 
             {/* Custom SVG Line graph */}
@@ -371,17 +371,17 @@ export default function ReportsTab({ transactions, categories }) {
           <div>
             <h3 className="text-xs font-mono font-bold text-[#141414] uppercase tracking-wider flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-[#F27D26]"/>
-              PAYMENT METHOD BREAKDOWN
+              Spending by Payment Method
             </h3>
             <p className="text-[8px] font-mono text-[#141414]/40 mt-1">
-              Total Expense: ₹{totalExpense.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+              Total expenses: ₹{totalExpense.toLocaleString('en-US', { maximumFractionDigits: 0 })}
             </p>
           </div>
         </div>
 
         {totalExpense === 0 ? (
           <p className="py-8 text-center font-mono text-[11px] font-semibold uppercase tracking-widest text-[#141414]/50">
-            No expense data available.
+            No expenses to show yet.
           </p>
         ) : (
           <div className="space-y-4">

@@ -18,7 +18,7 @@ export default function Sidebar({ onQuickAdd, onOpenSupport, onOpenProfile, prem
     return (<aside id="sidebar-nav" className="hidden lg:flex fixed left-0 top-0 z-40 h-screen flex-col bg-[#F5F5F0] border-r border-[#141414] select-none transition-all lg:w-[260px] lg:px-6 lg:py-8">
       {/* Brand logo */}
       <div className="mb-8 flex flex-col gap-1">
-        <span className="text-[9px] font-mono tracking-[0.3em] uppercase text-[#141414]/40">CURATED LEDGER</span>
+        <span className="text-[9px] font-mono tracking-[0.3em] uppercase text-[#141414]/40">WEALTH FLOW</span>
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-full bg-[#141414] flex items-center justify-center overflow-hidden">
             <img src="/favicon.svg" alt="Wealth Flow logo" className="w-4 h-4" />
@@ -34,7 +34,7 @@ export default function Sidebar({ onQuickAdd, onOpenSupport, onOpenProfile, prem
           <p className="font-serif text-xs italic text-[#141414] group-hover:text-white truncate">{profileName}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="text-[8px] font-mono tracking-[0.1em] uppercase text-[#F27D26] font-bold">
-              {premiumStatus ? 'PRIME_EXHIBIT' : 'DEMO_STUDIO'}
+              {premiumStatus ? 'Premium' : 'Free Plan'}
             </span>
           </div>
         </div>
@@ -66,12 +66,12 @@ export default function Sidebar({ onQuickAdd, onOpenSupport, onOpenProfile, prem
       <div className="mt-auto space-y-2 pt-6 border-t border-[#141414]/10" id="sidebar-footer">
         <button id="btn-sidebar-quick-add" onClick={onQuickAdd} className="w-full flex items-center justify-center gap-2 bg-[#F27D26] hover:bg-[#141414] text-white py-3 rounded-none font-bold text-xs uppercase tracking-widest active:scale-98 transition-all border border-[#141414]/20">
           <Plus className="w-4 h-4"/>
-          EXHIBIT +
+          + Add Expense
         </button>
 
         {!premiumStatus && (<button id="btn-sidebar-upgrade" onClick={onUpgradePlan} className="w-full flex items-center justify-center gap-2 border border-dashed border-[#F27D26] text-[#F27D26] py-2.5 rounded-none font-bold text-[10px] uppercase tracking-widest hover:bg-[#F27D26]/5 active:scale-98 transition-all mt-2">
             <UserPlus className="w-3.5 h-3.5"/>
-            GO SUPREME
+            Upgrade
           </button>)}
 
         <button id="btn-sidebar-support" onClick={onOpenSupport} className="w-full flex items-center gap-3 text-[#141414]/65 hover:text-[#141414] px-4 py-2 hover:bg-[#E2E2D9]/40 rounded-none transition-all text-[11px] font-bold uppercase tracking-widest">
@@ -81,7 +81,7 @@ export default function Sidebar({ onQuickAdd, onOpenSupport, onOpenProfile, prem
 
         <button id="btn-sidebar-signout" onClick={onLogout} className="w-full flex items-center gap-3 text-[#141414]/65 hover:text-[#F27D26] px-4 py-2 hover:bg-[#F27D26]/10 rounded-none transition-all text-[11px] font-bold uppercase tracking-widest">
           <LogOut className="w-4 h-4 shrink-0"/>
-          <span>Log Out</span>
+          <span>Sign Out</span>
         </button>
       </div>
     </aside>);

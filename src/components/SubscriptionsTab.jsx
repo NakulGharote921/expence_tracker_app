@@ -244,16 +244,16 @@ export default function SubscriptionsTab({ subscriptions, onAdd, onUpdate, onDel
     };
     if (editingId) {
       onUpdate(editingId, payload);
-      showToast('Subscription updated successfully.');
+      showToast('Subscription updated!');
     } else {
       // Duplicate check
       const dup = subs.find(s => s.name.toLowerCase() === form.name.trim().toLowerCase() && s.status === 'Active');
       if (dup) {
-        setErrors({ name: 'An active subscription with this name already exists.' });
+        setErrors({ name: 'You already have an active subscription with this name.' });
         return;
       }
       onAdd(payload);
-      showToast('Subscription added successfully.');
+      showToast('Subscription added!');
     }
     closeForm();
   };
@@ -291,7 +291,7 @@ export default function SubscriptionsTab({ subscriptions, onAdd, onUpdate, onDel
   };
   const handleDelete = (sub) => {
     onDelete(sub.id);
-    showToast('Subscription deleted permanently.');
+    showToast('Subscription deleted.');
     setConfirmAction(null);
   };
 
@@ -351,7 +351,7 @@ export default function SubscriptionsTab({ subscriptions, onAdd, onUpdate, onDel
           <div className="bg-white border-2 border-[#141414] rounded-none max-w-sm w-full p-6 space-y-4 shadow-[6px_6px_0px_0px_#141414]">
             <div className="flex items-center gap-2 text-[#141414]">
               <AlertTriangle className="w-5 h-5 text-[#F27D26]" />
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">Confirm Action</span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">Are you sure?</span>
             </div>
             <p className="text-sm font-bold text-[#141414]">
               {confirmAction.type === 'delete' && 'Delete this subscription permanently? This cannot be undone.'}
@@ -361,7 +361,7 @@ export default function SubscriptionsTab({ subscriptions, onAdd, onUpdate, onDel
             </p>
             <div className="flex justify-end gap-2">
               <button onClick={() => setConfirmAction(null)} className="px-4 py-2 border border-[#141414] text-[#141414] text-[10px] font-mono font-bold uppercase tracking-widest hover:bg-[#EBEBE4] rounded-none transition-all cursor-pointer">
-                Discard
+                Cancel
               </button>
               <button
                 onClick={() => {
@@ -389,19 +389,19 @@ export default function SubscriptionsTab({ subscriptions, onAdd, onUpdate, onDel
             Subscriptions
           </h2>
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#141414]/60 mt-2">
-            RECURRING PAYMENTS, BILLING CYCLES & COST ANALYTICS
+            Track your recurring payments and where your money goes
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button onClick={exportCSV} className="bg-[#EBEBE4] hover:bg-white text-[#141414] border border-[#141414] rounded-none py-2 px-4 transition-all text-[10px] font-mono tracking-widest font-bold uppercase cursor-pointer flex items-center gap-2">
-            <Download className="w-3.5 h-3.5"/> EXPORT
+            <Download className="w-3.5 h-3.5"/> Export CSV
           </button>
           <button onClick={() => { setViewMode(v => v === 'list' ? 'calendar' : 'list'); }} className="bg-[#EBEBE4] hover:bg-white text-[#141414] border border-[#141414] rounded-none py-2 px-4 transition-all text-[10px] font-mono tracking-widest font-bold uppercase cursor-pointer flex items-center gap-2">
             <Calendar className="w-3.5 h-3.5"/> {viewMode === 'list' ? 'CALENDAR' : 'LIST'}
           </button>
           <button onClick={() => { setForm(emptyForm()); setEditingId(null); setErrors({}); setShowForm(true); }}
             className="bg-[#141414] text-white hover:bg-[#F27D26] border border-[#141414] rounded-none py-2 px-4 transition-all text-[10px] font-mono tracking-widest font-bold uppercase cursor-pointer flex items-center gap-2">
-            <Plus className="w-3.5 h-3.5"/> ADD_SUBSCRIPTION
+            <Plus className="w-3.5 h-3.5"/> + Add Subscription
           </button>
         </div>
       </div>
@@ -409,8 +409,8 @@ export default function SubscriptionsTab({ subscriptions, onAdd, onUpdate, onDel
       {/* ──────────────────── STATS CARDS ──────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
-          { label: 'Total Subscriptions', value: subs.length, icon: Repeat, accent: false },
-          { label: 'Active Subscriptions', value: activeSubs.length, icon: Check, accent: true },
+          { label: 'Total', value: subs.length, icon: Repeat, accent: false },
+          { label: 'Active', value: activeSubs.length, icon: Check, accent: true },
           { label: 'Monthly Cost', value: fmtCurrency(monthlyCost), icon: DollarSign, accent: false },
           { label: 'Yearly Cost', value: fmtCurrency(yearlyCost), icon: TrendingUp, accent: false },
           { label: 'Upcoming (30d)', value: upcoming.filter(s => s.daysUntil <= 30).length + ' soon', icon: Clock, accent: false },
@@ -477,7 +477,7 @@ export default function SubscriptionsTab({ subscriptions, onAdd, onUpdate, onDel
             <div className="flex justify-between items-center pb-3 border-b border-[#141414]/15">
               <span className="text-[10px] font-mono tracking-[0.2em] font-bold text-[#141414] flex items-center gap-2">
                 <Repeat className="w-4 h-4 text-[#F27D26]" />
-                {editingId ? 'EDIT SUBSCRIPTION' : 'ADD NEW SUBSCRIPTION'}
+                {editingId ? 'Edit Subscription' : 'New Subscription'}
               </span>
               <button onClick={closeForm} className="text-[#141414]/60 hover:text-[#141414] text-xs font-mono font-bold tracking-wider cursor-pointer">[✕ CLOSE]</button>
             </div>
@@ -485,7 +485,7 @@ export default function SubscriptionsTab({ subscriptions, onAdd, onUpdate, onDel
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Name */}
               <div className="md:col-span-2">
-                <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5">Subscription Name *</label>
+                <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5">Name *</label>
                 <input type="text" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Netflix, Spotify, etc." className={`w-full bg-[#EBEBE4] border ${errors.name ? 'border-red-500' : 'border-[#141414]'} focus:bg-white rounded-none py-2 px-3 text-xs font-semibold outline-none transition-all placeholder:text-[#141414]/30`} />
                 {errors.name && <p className="text-[10px] text-red-600 mt-1 font-bold">{errors.name}</p>}
               </div>
@@ -498,8 +498,8 @@ export default function SubscriptionsTab({ subscriptions, onAdd, onUpdate, onDel
               </div>
               {/* Description */}
               <div className="md:col-span-3">
-                <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5">Description <span className="normal-case text-[#F27D26]">(OPTIONAL)</span></label>
-                <input type="text" value={form.description} onChange={e => set('description', e.target.value)} placeholder="Brief description..." className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white rounded-none py-2 px-3 text-xs font-semibold outline-none transition-all placeholder:text-[#141414]/30" />
+                <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5">Description <span className="normal-case text-[#F27D26]">(optional)</span></label>
+                <input type="text" value={form.description} onChange={e => set('description', e.target.value)} placeholder="What's this subscription for?" className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white rounded-none py-2 px-3 text-xs font-semibold outline-none transition-all placeholder:text-[#141414]/30" />
               </div>
               {/* Amount + Currency */}
               <div>
@@ -532,9 +532,9 @@ export default function SubscriptionsTab({ subscriptions, onAdd, onUpdate, onDel
                 {errors.nextBillingDate && <p className="text-[10px] text-red-600 mt-1 font-bold">{errors.nextBillingDate}</p>}
               </div>
               <div>
-                <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5">Payment Method *</label>
+                <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5">How do you pay? *</label>
                 <select value={form.paymentMethod} onChange={e => set('paymentMethod', e.target.value)} className={`w-full bg-[#EBEBE4] border ${errors.paymentMethod ? 'border-red-500' : 'border-[#141414]'} rounded-none py-2.5 px-3 text-xs font-bold uppercase tracking-wider outline-none text-[#141414]`}>
-                  <option value="">Select Payment Method</option>
+                  <option value="">Select payment method</option>
                   {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
                 {errors.paymentMethod && <p className="text-[10px] text-red-600 mt-1 font-bold">{errors.paymentMethod}</p>}
@@ -550,22 +550,22 @@ export default function SubscriptionsTab({ subscriptions, onAdd, onUpdate, onDel
               <div className="flex items-end gap-2">
                 <div className="flex-1">
                   <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5">
-                    Reminder Days Before <span className="text-[#F27D26] normal-case">(auto)</span>
+                    Remind me before (days)
                   </label>
                   <input type="number" min="0" max="30" value={form.reminderDays} onChange={e => set('reminderDays', e.target.value)} className="w-full bg-[#EBEBE4] border border-[#141414] rounded-none py-2 px-3 text-xs font-semibold font-mono outline-none" />
                 </div>
               </div>
               {/* Notes */}
               <div className="md:col-span-3">
-                <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5">Notes <span className="normal-case text-[#F27D26]">(OPTIONAL)</span></label>
-                <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} placeholder="Any additional notes..." className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white rounded-none py-2 px-3 text-xs font-semibold outline-none transition-all resize-none placeholder:text-[#141414]/30" />
+                <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5">Notes <span className="normal-case text-[#F27D26]">(optional)</span></label>
+                <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} placeholder="Any extra details..." className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white rounded-none py-2 px-3 text-xs font-semibold outline-none transition-all resize-none placeholder:text-[#141414]/30" />
               </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-2 border-t border-[#141414]/10">
-              <button onClick={closeForm} className="text-xs font-mono font-bold text-[#141414]/60 hover:text-[#141414] py-2 px-4 rounded-none transition-all cursor-pointer border border-transparent hover:border-[#141414]/10">[CANCEL]</button>
+              <button onClick={closeForm} className="text-xs font-mono font-bold text-[#141414]/60 hover:text-[#141414] py-2 px-4 rounded-none transition-all cursor-pointer border border-transparent hover:border-[#141414]/10">Cancel</button>
               <button onClick={submitForm} className="bg-[#141414] hover:bg-[#F27D26] text-white border border-[#141414] text-xs font-mono font-bold uppercase tracking-widest py-2 px-6 rounded-none transition-all cursor-pointer">
-                {editingId ? 'UPDATE' : 'SAVE'} +
+                {editingId ? 'Save Changes' : 'Save'}
               </button>
             </div>
           </div>
@@ -601,7 +601,7 @@ export default function SubscriptionsTab({ subscriptions, onAdd, onUpdate, onDel
             <div className="p-12 text-center text-[#141414]/60">
               <Repeat className="w-10 h-10 text-[#141414]/40 mx-auto mb-2" />
               <p className="font-serif text-lg italic font-bold text-[#141414]">No subscriptions yet</p>
-              <p className="text-xs mt-1">Track your recurring payments and never lose sight of where your money goes.</p>
+              <p className="text-xs mt-1">Add your first subscription to keep track of regular payments.</p>
               <button onClick={() => { setForm(emptyForm()); setEditingId(null); setShowForm(true); }}
                 className="mt-4 bg-[#141414] text-white hover:bg-[#F27D26] border border-[#141414] rounded-none py-2 px-6 text-[10px] font-mono font-bold uppercase tracking-widest transition-all cursor-pointer">
                 + Add Subscription
@@ -706,7 +706,7 @@ export default function SubscriptionsTab({ subscriptions, onAdd, onUpdate, onDel
             <div className="p-8 text-center text-[#141414]/60">
               <Repeat className="w-10 h-10 text-[#141414]/40 mx-auto mb-2" />
               <p className="font-serif text-base italic font-bold text-[#141414]">No subscriptions yet</p>
-              <p className="text-[11px] mt-1">Track your recurring payments and never lose sight of where your money goes.</p>
+              <p className="text-[11px] mt-1">Add your first subscription to keep track of regular payments.</p>
               <button onClick={() => { setForm(emptyForm()); setEditingId(null); setShowForm(true); }}
                 className="mt-4 bg-[#141414] text-white hover:bg-[#F27D26] border border-[#141414] rounded-none py-2 px-6 text-[10px] font-mono font-bold uppercase tracking-widest transition-all cursor-pointer">
                 + Add Subscription

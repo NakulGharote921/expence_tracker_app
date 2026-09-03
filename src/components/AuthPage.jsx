@@ -85,7 +85,7 @@ export default function AuthPage({ initialMode = 'signin' }) {
                 <div className="bg-white border border-[#141414] shadow-[6px_6px_0px_0px_#F27D26] p-6 sm:p-8">
                     <div className="flex items-center justify-between mb-6">
                         <h1 className="font-serif text-2xl italic font-semibold">
-                            {mode === 'signin' ? 'Sign In' : 'Create Account'}
+                            {mode === 'signin' ? 'Sign In' : 'Create your account'}
                         </h1>
                         <div className="flex border border-[#141414]">
                             <button onClick={() => setMode('signin')} className={`px-3 py-1.5 text-[10px] font-mono uppercase tracking-widest font-bold transition-all cursor-pointer ${mode === 'signin' ? 'bg-[#141414] text-white' : 'text-[#141414]'}`}>Sign in</button>

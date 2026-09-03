@@ -308,7 +308,7 @@ export default function DashboardPage({ userId }) {
         const next = [newTx, ...transactions];
         setTransactions(next);
         writeTransactions(next)?.catch(() => { });
-        triggerToast(`Added expense for ₹${amount.toFixed(2)}!`);
+        triggerToast(`Expense added! ₹${amount.toFixed(2)}`);
         notify(
             'Transaction Added',
             `Your ₹${amount ? amount.toFixed(2) : '0.00'} expense was added successfully.`,
@@ -323,29 +323,29 @@ export default function DashboardPage({ userId }) {
         if (!target)
             return;
 
-        requestConfirmation('Delete Transaction Record', `Are you absolutely sure you want to delete the transaction "${target.name}" for ₹${target.amount.toFixed(2)}? This action cannot be undone.`, async () => {
+        requestConfirmation('Delete this expense?', `Delete "${target.name}" (₹${target.amount.toFixed(2)})? This can't be undone.`, async () => {
             const next = transactions.filter(t => t.id !== id);
             setTransactions(next);
             writeTransactions(next)?.catch(() => { });
-            triggerToast(`Deleted transaction: ${target.name}`);
+            triggerToast(`Deleted "${target.name}"`);
         });
     };
 
     const handleBulkDeleteTransactions = (ids) => {
-        requestConfirmation('Purge Multiple Ledger Entries', `Are you absolutely sure you want to delete ${ids.length} selected transaction records? This action is permanent and cannot be undone.`, async () => {
+        requestConfirmation(`Delete ${ids.length} expenses?`, `This will permanently delete ${ids.length} expenses. This can't be undone.`, async () => {
             const next = transactions.filter(t => !ids.includes(t.id));
             setTransactions(next);
             writeTransactions(next)?.catch(() => { });
-            triggerToast(`Successfully purged ${ids.length} transactions.`);
+            triggerToast(`${ids.length} expenses deleted.`);
         });
     };
 
     const handleDeleteBudget = (category) => {
-        requestConfirmation('Delete Budget Cap', `Are you absolutely sure you want to remove the budget limit for the category "${category}"? You will lose tracking of spent limits for this classification.`, async () => {
+        requestConfirmation('Delete this budget?', `Remove the budget limit for "${category}"? This can't be undone.`, async () => {
             const next = budgets.filter(b => b.category !== category);
             setBudgets(next);
             writeBudgets(next)?.catch(() => { });
-            triggerToast(`Deleted budget limit for ${category}.`);
+            triggerToast(`Budget for ${category} deleted.`);
         });
     };
 
@@ -361,7 +361,7 @@ export default function DashboardPage({ userId }) {
         writeTransactions(next)?.catch(() => { });
         
         const sourceLabel = txData.source === 'ai' ? ' via AI' : '';
-        triggerToast(`Successfully recorded${sourceLabel} transaction: "${txData.name}"`);
+        triggerToast(`Added "${txData.name}"${sourceLabel}!`);
         
         const amount = Number(txData.amount) || 0;
         notify(
@@ -382,7 +382,7 @@ export default function DashboardPage({ userId }) {
         });
         setTransactions(next);
         writeTransactions(next)?.catch(() => { });
-        triggerToast('Updated transaction successfully.');
+        triggerToast('Changes saved!');
     };
 
     const handleUpdateBudget = (category, newLimit) => {
@@ -394,7 +394,7 @@ export default function DashboardPage({ userId }) {
         });
         setBudgets(next);
         writeBudgets(next)?.catch(() => { });
-        triggerToast(`Re-configured budget cap for ${category} to ₹${newLimit}.`);
+        triggerToast(`Budget for ${category} updated to ₹${newLimit}.`);
     };
 
     const handleAddBudget = (category, limit) => {
@@ -408,7 +408,7 @@ export default function DashboardPage({ userId }) {
         const next = [...budgets, newBudget];
         setBudgets(next);
         writeBudgets(next)?.catch(() => { });
-        triggerToast(`Initialized active budget boundaries for ${category}.`);
+        triggerToast(`Budget added for ${category}!`);
     };
 
     const handleAddCategory = (name, color, iconName) => {
@@ -424,7 +424,7 @@ export default function DashboardPage({ userId }) {
         };
         setCategories(next);
         writeCategories(next)?.catch(() => { });
-        triggerToast(`Registered new category classification: ${name}.`);
+        triggerToast(`Category "${name}" added!`);
     };
 
     // Subscription handlers (localStorage persistence)
@@ -440,23 +440,23 @@ export default function DashboardPage({ userId }) {
             s.name.toLowerCase() === String(newSub.name).toLowerCase() && s.status === 'Active'
         );
         if (dup) {
-            triggerToast('An active subscription with this name already exists.');
+            triggerToast('You already have an active subscription with this name.');
             return;
         }
         setSubscriptions(prev => [newSub, ...prev]);
-        triggerToast('Subscription added successfully.');
+        triggerToast('Subscription added!');
     };
 
     const handleUpdateSubscription = (id, updated) => {
         setSubscriptions(prev => prev.map(s => s.id === id
             ? { ...s, ...updated, id, updatedAt: new Date().toISOString().split('T')[0] }
             : s));
-        triggerToast('Subscription updated successfully.');
+        triggerToast('Subscription updated!');
     };
 
     const handleDeleteSubscription = (id) => {
         setSubscriptions(prev => prev.filter(s => s.id !== id));
-        triggerToast('Subscription deleted permanently.');
+        triggerToast('Subscription deleted.');
     };
 
     // Notification handles (persist read-state to Supabase, optimistic UI update)
@@ -484,7 +484,7 @@ export default function DashboardPage({ userId }) {
     const handleClearNotifications = () => {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         if (userId) supabaseDb.markAllNotificationsRead(userId).catch(() => {});
-        triggerToast('All notifications read.');
+        triggerToast('All notifications marked as read.');
         setNotifError(null);
     };
     const triggerToast = (msg) => {
@@ -496,7 +496,7 @@ export default function DashboardPage({ userId }) {
         e.preventDefault();
         if (!supportText.trim())
             return;
-        triggerToast('Submitted support ticket! A teammate will reach out shortly.');
+        triggerToast('Message sent! We\'ll get back to you soon.');
         setSupportText('');
         setShowSupportModal(false);
     };
@@ -517,7 +517,7 @@ export default function DashboardPage({ userId }) {
         e.preventDefault();
         const limitNum = parseFloat(newTotalBudgetVal);
         if (isNaN(limitNum) || limitNum <= 0) {
-            triggerToast('Target budget must be a positive number.');
+            triggerToast('Please enter a valid budget amount.');
             return;
         }
         setTotalBudgetLimit(limitNum);
@@ -530,7 +530,7 @@ export default function DashboardPage({ userId }) {
             limit: splitLimit
         })));
         setIsEditingTotalBudget(false);
-        triggerToast(`Target budget updated to ₹${limitNum.toLocaleString('en-IN')}`);
+        triggerToast(`Budget limit updated to ₹${limitNum.toLocaleString('en-IN')}`);
     };
     // Active numerical calculators
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
@@ -623,7 +623,7 @@ export default function DashboardPage({ userId }) {
                 handleLogout();
                 setIsMobileSidebarOpen(false);
             }} className="w-full text-left text-[11px] uppercase tracking-widest font-bold text-red-650 hover:text-red-700 flex items-center gap-2.5 cursor-pointer">
-                <LogOut className="w-4 h-4 text-red-650"/> Log Out
+                <LogOut className="w-4 h-4 text-red-650"/> Sign Out
               </button>
             </div>
           </div>
@@ -642,8 +642,8 @@ export default function DashboardPage({ userId }) {
               
               {/* Introduction bar */}
               <div className="border-b border-[#141414]/15 pb-4">
-                <h1 className="text-xl sm:text-2xl md:text-3xl xl:text-4xl font-serif italic font-semibold text-[#141414] tracking-tight leading-tight">Financial Exposition</h1>
-                <p className="mt-2 break-words text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[#141414]/60">ACCOUNT OWNER: {profileName || 'User'} // JULY REPORT ENGINE</p>
+                <h1 className="text-xl sm:text-2xl md:text-3xl xl:text-4xl font-serif italic font-semibold text-[#141414] tracking-tight leading-tight">Money Overview</h1>
+                <p className="mt-2 break-words text-[9px] sm:text-[10px] font-mono uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[#141414]/60">Welcome back, {profileName || 'User'}</p>
               </div>
 
               {/* Three card grid metric columns */}
@@ -654,7 +654,7 @@ export default function DashboardPage({ userId }) {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-[#141414]/60 flex items-center gap-1.5 select-none">
-                        AGGREGATE COST
+                        TOTAL SPENT
                       </span>
                       <TrendingDown className="w-4 h-4 text-[#F27D26]"/>
                     </div>
@@ -663,17 +663,17 @@ export default function DashboardPage({ userId }) {
                         ₹{totalExpensesAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     <p className="text-[9px] font-mono uppercase tracking-wider text-[#141414]/45 mt-1">
-                      Net expense cost
+                      Your total expenses
                     </p>
                     {/* Overall Target Budget Limit & Live Update Display */}
                     <div className="mt-4 pt-3.5 border-t border-[#141414]/15">
                         <div className="flex items-center justify-between text-[10px] font-mono font-bold text-[#141414]/60 uppercase tracking-[0.1em]">
-                          <span>TARGET LIMIT</span>
-                          {isEditingTotalBudget ? (<span className="text-[#F27D26] font-bold uppercase text-[9px]">EDITING</span>) : (<button onClick={() => {
+                          <span>BUDGET LIMIT</span>
+                          {isEditingTotalBudget ? (<span className="text-[#F27D26] font-bold uppercase text-[9px]">Editing</span>) : (<button onClick={() => {
                     setNewTotalBudgetVal(totalBudgetLimit.toString());
                     setIsEditingTotalBudget(true);
                 }} className="text-[#F27D26] hover:underline cursor-pointer font-bold uppercase py-0.5 px-1 bg-[#F27D26]/10 border border-[#F27D26]/20 text-[9px]">
-                            [Edit Target]
+                            [Edit]
                           </button>)}
                         </div>
 
@@ -714,7 +714,7 @@ export default function DashboardPage({ userId }) {
                   </div>
                   <p className="text-[10px] font-mono uppercase tracking-wider font-bold text-red-605 flex items-center mt-6">
                     <TrendingUp className="w-3.5 h-3.5 mr-1 shrink-0 text-red-650"/>
-                    +12% EXPENSE SLIPPAGE
+                    +12% from last month
                   </p>
                 </div>
 
@@ -725,7 +725,7 @@ export default function DashboardPage({ userId }) {
                 <div className="bg-white p-3 sm:p-4 md:p-6 rounded-none border border-[#141414] hover:shadow-[4px_4px_0px_0px_#141414] transition-all flex flex-col justify-between h-full md:col-span-2 xl:col-span-1 overflow-hidden">
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-[#141414]/60">RECORD COUNT</span>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold text-[#141414]/60">TOTAL ENTRIES</span>
                       <History className="w-4 h-4 text-[#F27D26]"/>
                     </div>
                     
@@ -733,7 +733,7 @@ export default function DashboardPage({ userId }) {
                       <span className="font-serif text-3xl sm:text-4xl italic font-bold text-[#141414]">
                         {transactions.length}
                       </span>
-                      <span className="text-[9px] font-mono uppercase tracking-wider font-bold text-[#141414]/50">ROWS FILED</span>
+                      <span className="text-[9px] font-mono uppercase tracking-wider font-bold text-[#141414]/50">entries</span>
                     </div>
                   </div>
 
@@ -743,7 +743,7 @@ export default function DashboardPage({ userId }) {
                     <div className="w-7 h-7 rounded-none border border-[#141414] bg-[#F27D26] text-[9px] text-white flex items-center justify-center font-bold font-mono">WF</div>
                     <div className="w-7 h-7 rounded-none border border-[#141414] bg-[#D1C6B4] text-[9px] text-[#141414] flex items-center justify-center font-bold font-mono">SM</div>
                     <div className="w-7 h-7 rounded-none border border-[#141414] bg-[#141414] text-[9px] text-white flex items-center justify-center font-bold font-mono">+39</div>
-                    <span className="text-[9px] font-mono uppercase tracking-wider text-[#141414]/60 font-bold ml-2.5">CO-LEDGERS</span>
+                    <span className="text-[9px] font-mono uppercase tracking-wider text-[#141414]/60 font-bold ml-2.5">categories</span>
                   </div>
                 </div>
 
@@ -811,21 +811,21 @@ export default function DashboardPage({ userId }) {
 
             <div className="flex items-center gap-2 text-primary font-bold">
               <HelpCircle className="w-5 h-5"/>
-              <span className="text-sm font-sans tracking-tight">WealthFlow Support Portal</span>
+              <span className="text-sm font-sans tracking-tight">Need Help?</span>
             </div>
 
             <p className="text-xs text-on-surface-variant leading-relaxed">
-              Have questions regarding offline persistence, budget warnings, or conversions? Send your inquiry to our financial dispatchers below.
+              We're here to help. Send us your question or feedback below.
             </p>
 
             <div>
-              <label className="block text-[10px] font-bold text-outline mb-1 uppercase">Email Address</label>
+              <label className="block text-[10px] font-bold text-outline mb-1 uppercase">Email</label>
               <input type="email" value={supportEmail} onChange={e => setSupportEmail(e.target.value)} className="w-full bg-surface-container-low border border-outline focus:border-primary text-xs rounded-xl py-2 px-3 outline-none" required/>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-outline mb-1 uppercase">How can we assist you today?</label>
-              <textarea rows={4} value={supportText} onChange={e => setSupportText(e.target.value)} placeholder="Type your question or report feedback..." className="w-full bg-surface-container-low border border-outline focus:border-primary text-xs rounded-xl py-2 px-3 outline-none resize-none font-medium text-on-surface" required/>
+              <label className="block text-[10px] font-bold text-outline mb-1 uppercase">Your message</label>
+              <textarea rows={4} value={supportText} onChange={e => setSupportText(e.target.value)} placeholder="How can we help?" className="w-full bg-surface-container-low border border-outline focus:border-primary text-xs rounded-xl py-2 px-3 outline-none resize-none font-medium text-on-surface" required/>
             </div>
 
             <div className="flex justify-end gap-2 pt-2 text-xs">
@@ -833,7 +833,7 @@ export default function DashboardPage({ userId }) {
                 Cancel
               </button>
               <button type="submit" className="bg-primary text-on-primary font-bold py-2 px-5 rounded-xl hover:bg-primary-container shadow transition-all">
-                Submit Ticket
+                Send Message
               </button>
             </div>
           </form>
@@ -893,39 +893,39 @@ export default function DashboardPage({ userId }) {
 
             <div className="flex flex-col items-center text-center pb-2 border-b border-outline-variant/30">
               <Sparkles className="w-10 h-10 text-primary-container animate-spin mb-2"/>
-              <h4 className="font-sans text-base font-black text-on-surface tracking-tight">Maximize WealthFlow Standard</h4>
-              <p className="text-[10px] text-primary/80 font-bold uppercase tracking-wider mt-0.5">Corporate Fin-tech Package</p>
+              <h4 className="font-sans text-base font-black text-on-surface tracking-tight">Upgrade to Premium</h4>
+              <p className="text-[10px] text-primary/80 font-bold uppercase tracking-wider mt-0.5">Unlock all features</p>
             </div>
 
             <ul className="space-y-3 text-xs text-on-surface-variant font-semibold">
               <li className="flex items-start gap-2.5">
                 <span className="text-primary font-bold">✓</span>
-                <span>Unlimited category creation definitions & parameters</span>
+                <span>Unlimited categories</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-primary font-bold">✓</span>
-                <span>Active responsive SVG analytics graphs (Daily Cost Streams)</span>
+                <span>Daily spending charts</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-primary font-bold">✓</span>
-                <span>Dynamic budget warnings triggered at &gt;90% boundaries</span>
+                <span>Budget alerts when you're close to your limit</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="text-primary font-bold">✓</span>
-                <span>Unlimited multi-selectable CSV ledger spreadsheets downloads</span>
+                <span>Export your data as CSV</span>
               </li>
             </ul>
 
             <div className="bg-surface-container-low p-3.5 rounded-2xl border border-outline-variant text-[11px] font-bold text-center">
               {isPremium ? (<div>
-                  <p className="text-secondary">✓ Premium Active on this Demo Applet</p>
-                  <button onClick={() => { setIsPremium(false); setShowUpgradeModal(false); triggerToast('Switched back to Demo plan.'); }} className="mt-2 text-outline hover:text-on-surface hover:underline text-[10px] block mx-auto font-medium">
-                    Downgrade back to Free Trial
+                  <p className="text-secondary">✓ Premium is active</p>
+                  <button onClick={() => { setIsPremium(false); setShowUpgradeModal(false); triggerToast('Switched to Free plan.'); }} className="mt-2 text-outline hover:text-on-surface hover:underline text-[10px] block mx-auto font-medium">
+                    Switch to Free plan
                   </button>
                 </div>) : (<div>
-                  <p className="text-on-surface">Upgrade Alex's account instantly</p>
-                  <button onClick={() => { setIsPremium(true); setShowUpgradeModal(false); triggerToast('Unlocked Premium plan features successfully!'); }} className="mt-2 w-full bg-primary hover:bg-primary-container text-on-primary py-2 rounded-xl text-xs font-black transition-all shadow-md">
-                    Upgrade Account Display
+                  <p className="text-on-surface">Upgrade your account</p>
+                  <button onClick={() => { setIsPremium(true); setShowUpgradeModal(false); triggerToast('Premium unlocked!'); }} className="mt-2 w-full bg-primary hover:bg-primary-container text-on-primary py-2 rounded-xl text-xs font-black transition-all shadow-md">
+                    Upgrade Now
                   </button>
                 </div>)}
             </div>
@@ -938,7 +938,7 @@ export default function DashboardPage({ userId }) {
             <div className="flex items-center gap-3 text-red-600 font-bold border-b border-[#141414]/10 pb-3">
               <span className="w-3 h-3 bg-red-600 rounded-none shrink-0"/>
               <span className="text-xs font-mono uppercase tracking-[0.2em] font-bold" id="dialog-title">
-                {confirmDialog.title || 'SYSTEM WARNING'}
+                {confirmDialog.title || 'Are you sure?'}
               </span>
             </div>
 
@@ -948,10 +948,10 @@ export default function DashboardPage({ userId }) {
 
             <div className="flex gap-3 pt-2 text-xs">
               <button id="btn-dialog-cancel" type="button" onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))} className="flex-1 bg-[#EBEBE4] hover:bg-neutral-300 text-[#141414] border border-[#141414] py-2 px-4 transition-all text-[10px] font-mono tracking-widest font-bold uppercase cursor-pointer text-center font-bold">
-                [CANCEL]
+                Cancel
               </button>
               <button id="btn-dialog-confirm" type="button" onClick={confirmDialog.onConfirm} className="flex-1 bg-red-600 hover:bg-[#141414] text-white border border-[#141414] py-2 px-4 transition-all text-[10px] font-mono tracking-widest font-bold uppercase cursor-pointer text-center font-bold">
-                PROCEED_PURGE ✓
+                Delete
               </button>
             </div>
           </div>

@@ -171,23 +171,23 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
       {/* Title Header with actions */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#141414]/15 pb-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif italic font-semibold text-[#141414] tracking-tight">Financial Ledger</h2>
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#141414]/60 mt-2">AUDITS, FILTERING, DIRECT ENTRY, AND ARCHIVE LOGS</p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif italic font-semibold text-[#141414] tracking-tight">Transactions</h2>
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#141414]/60 mt-2">View, search, and manage all your expenses and income</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           {selectedRowIds.length > 0 && (<button id="btn-bulk-delete" onClick={handleBulkDelete} className="bg-red-600 hover:bg-[#141414] text-white border border-[#141414] rounded-none py-2 px-4 transition-all text-[10px] font-mono tracking-widest font-bold uppercase cursor-pointer">
-              PURGE_SELECTED [{selectedRowIds.length}]
+              Delete Selected ({selectedRowIds.length})
             </button>)}
 
           <button id="btn-export-reports" onClick={handleExportCSV} className="bg-[#EBEBE4] hover:bg-white text-[#141414] border border-[#141414] rounded-none py-2 px-4 transition-all text-[10px] font-mono tracking-widest font-bold uppercase cursor-pointer flex items-center gap-2">
             <Download className="w-3.5 h-3.5"/>
-            {selectedRowIds.length > 0 ? 'EXPORT_SELECTED' : 'EXPORT_LEDGER'}
+            {selectedRowIds.length > 0 ? 'Export Selected' : 'Export CSV'}
           </button>
 
           <button id="btn-open-add-transaction" onClick={() => setShowAddForm(!showAddForm)} className="bg-[#141414] text-white hover:bg-[#F27D26] border border-[#141414] rounded-none py-2 px-4 transition-all text-[10px] font-mono tracking-widest font-bold uppercase cursor-pointer flex items-center gap-2">
             <Plus className="w-3.5 h-3.5"/>
-            RECORD_ENTRY
+            Add Transaction
           </button>
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
           <div className="flex justify-between items-center pb-3 border-b border-[#141414]/15">
             <span className="text-[10px] font-mono tracking-[0.2em] font-bold text-[#141414] flex items-center gap-2">
               <Receipt className="w-4 h-4 text-[#F27D26]"/>
-              RECORD DIRECT LEDGER ENTRY
+              New Transaction
             </span>
             <button type="button" onClick={() => setShowAddForm(false)} className="text-[#141414]/60 hover:text-[#141414] text-xs font-mono font-bold tracking-wider cursor-pointer">
               [✕ CLOSE]
@@ -206,12 +206,12 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
-              <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5 px-0.5">Title Name</label>
-              <input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Tesla Stocks, Salary etc" className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white rounded-none py-2 px-3 text-xs font-semibold outline-none transition-all placeholder:text-[#141414]/30" required/>
+              <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5 px-0.5">Name</label>
+              <input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Grocery, Salary" className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white rounded-none py-2 px-3 text-xs font-semibold outline-none transition-all placeholder:text-[#141414]/30" required/>
             </div>
             <div>
-              <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5 px-0.5">Amount (INR)</label>
-              <input type="number" step="0.01" value={newAmount} onChange={e => setNewAmount(e.target.value)} placeholder="499.00" className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white rounded-none py-2 px-3 text-xs font-semibold font-mono outline-none transition-all placeholder:text-[#141414]/30" required/>
+              <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5 px-0.5">Amount</label>
+              <input type="number" step="0.01" value={newAmount} onChange={e => setNewAmount(e.target.value)} placeholder="e.g. 500" className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white rounded-none py-2 px-3 text-xs font-semibold font-mono outline-none transition-all placeholder:text-[#141414]/30" required/>
             </div>
             <div>
               <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5 px-0.5">Category</label>
@@ -220,7 +220,7 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
               </select>
             </div>
             <div>
-              <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5 px-0.5">Transaction Type</label>
+              <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5 px-0.5">Type</label>
               <div className="flex bg-[#EBEBE4] border border-[#141414] p-1 h-[36px] items-center">
                 <button type="button" onClick={() => setNewType('expense')} className={`flex-1 text-[10px] font-mono tracking-wider font-bold py-1.5 px-2 rounded-none transition-all cursor-pointer h-full ${newType === 'expense' ? 'bg-[#141414] text-white' : 'text-[#141414]/60 bg-[#EBEBE4]'}`}>
                   EXPENSE
@@ -231,7 +231,7 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
               </div>
             </div>
             <div>
-              <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5 px-0.5">Audit Date</label>
+              <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5 px-0.5">Date</label>
               <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="w-full bg-[#EBEBE4] border border-[#141414] outline-none text-xs rounded-none py-2 px-3 text-[#141414] font-semibold font-mono"/>
             </div>
           </div>
@@ -240,22 +240,22 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
             <div>
               <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5 px-0.5">Payment Method</label>
               <select value={newPaymentMethod} onChange={e => setNewPaymentMethod(e.target.value)} className="w-full bg-[#EBEBE4] border border-[#141414] rounded-none py-2.5 px-3 text-xs font-bold uppercase tracking-wider outline-none text-[#141414]" required>
-                <option value="">Select Payment Method</option>
+                <option value="">How did you pay?</option>
                 {PAYMENT_METHODS.map(m => (<option key={m} value={m}>{m}</option>))}
               </select>
             </div>
             <div>
               <label className="block text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-[#141414]/60 mb-1.5 px-0.5">Description <span className="normal-case text-[#F27D26]">(OPTIONAL)</span></label>
-              <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="Any additional details about this ledger entry..." className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white rounded-none py-2 px-3 text-xs font-semibold outline-none transition-all placeholder:text-[#141414]/30"/>
+              <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="Any notes about this..." className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white rounded-none py-2 px-3 text-xs font-semibold outline-none transition-all placeholder:text-[#141414]/30"/>
             </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowAddForm(false)} className="text-xs font-mono font-bold text-[#141414]/60 hover:text-[#141414] py-1.5 px-4 rounded-none transition-all cursor-pointer border border-transparent hover:border-[#141414]/10 bg-transparent">
-              [CANCEL]
+              Cancel
             </button>
             <button type="submit" className="bg-[#141414] hover:bg-[#F27D26] text-white border border-[#141414] text-xs font-mono font-bold uppercase tracking-widest py-2 px-6 rounded-none transition-all cursor-pointer">
-              SAVE_ENTRY +
+              Save
             </button>
           </div>
         </form>)}
@@ -265,7 +265,7 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
         {/* Keyword Search */}
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-[#141414]/50 absolute left-3 top-1/2 -translate-y-1/2"/>
-          <input type="text" value={localSearch} onChange={e => { setLocalSearch(e.target.value); setCurrentPage(1); }} placeholder="Search matching names..." className="w-full pl-9 pr-4 py-2 bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none outline-none transition-all placeholder:text-[#141414]/40"/>
+          <input type="text" value={localSearch} onChange={e => { setLocalSearch(e.target.value); setCurrentPage(1); }} placeholder="Search transactions..." className="w-full pl-9 pr-4 py-2 bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none outline-none transition-all placeholder:text-[#141414]/40"/>
         </div>
 
         {/* Categories selector */}
@@ -293,7 +293,7 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
           <select value={selectedPaymentMethod} onChange={e => { setSelectedPaymentMethod(e.target.value); setCurrentPage(1); }} className="w-full bg-[#EBEBE4] border border-[#141414] rounded-none py-2 px-2 text-xs font-bold uppercase tracking-wider outline-none text-[#141414]">
             <option value="All">All Payment Methods</option>
             {PAYMENT_METHODS.map(m => (<option key={m} value={m}>{m}</option>))}
-            <option value="Not specified">Not Specified</option>
+            <option value="Not specified">Select payment method</option>
           </select>
         </div>
 
@@ -316,13 +316,13 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
                 </th>
                 <th className="p-3 border-r border-[#141414]/10 cursor-pointer hover:bg-neutral-200 transition-colors" onClick={() => handleToggleSort('name')}>
                   <div className="flex items-center gap-1.5 uppercase font-mono">
-                    <span>Title Name</span>
+                    <span>Name</span>
                     <ArrowUpDown className="w-3 h-3 text-[#141414]"/>
                   </div>
                 </th>
                 <th className="p-3 border-r border-[#141414]/10 cursor-pointer hover:bg-neutral-200 transition-colors" onClick={() => handleToggleSort('amount')}>
                   <div className="flex items-center gap-1.5 uppercase font-mono">
-                    <span>INR Amount</span>
+                    <span>Amount</span>
                     <ArrowUpDown className="w-3 h-3 text-[#141414]"/>
                   </div>
                 </th>
@@ -330,11 +330,11 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
                 <th className="p-3 border-r border-[#141414]/10 uppercase font-mono">Payment</th>
                 <th className="p-3 border-r border-[#141414]/10 cursor-pointer hover:bg-neutral-200 transition-colors" onClick={() => handleToggleSort('date')}>
                   <div className="flex items-center gap-1.5 uppercase font-mono">
-                    <span>Audit Date</span>
+                    <span>Date</span>
                     <ArrowUpDown className="w-3 h-3 text-[#141414]"/>
                   </div>
                 </th>
-                <th className="p-3 border-r border-[#141414]/10 uppercase font-mono">Description</th>
+                <th className="p-3 border-r border-[#141414]/10 uppercase font-mono">Notes</th>
                 <th className="p-3 uppercase font-mono text-center">Actions</th>
               </tr>
             </thead>
@@ -344,8 +344,8 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
                   <td colSpan={8} className="p-12 text-center text-[#141414]/60">
                     <div className="flex flex-col items-center justify-center space-y-2">
                        <FileText className="w-10 h-10 text-[#141414]/40"/>
-                       <p className="font-serif text-lg italic font-bold text-[#141414]">No ledger entries</p>
-                       <p className="text-xs">Adjust your search parameters or register an entry above.</p>
+                       <p className="font-serif text-lg italic font-bold text-[#141414]">No transactions yet</p>
+                       <p className="text-xs">Try adjusting your filters or add a new transaction.</p>
                     </div>
                   </td>
                 </tr>) : (paginatedList.map(tx => {
@@ -390,7 +390,7 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
                       {/* Payment Method column */}
                       <td className="p-3 border-r border-[#141414]/10">
                         {isEditing ? (<select value={editPaymentMethod} onChange={e => setEditPaymentMethod(e.target.value)} className="bg-[#EBEBE4] border border-[#141414] text-[10px] rounded-none px-2 py-1 outline-none font-bold uppercase">
-                            <option value="">Not Specified</option>
+                            <option value="">Select payment method</option>
                             {PAYMENT_METHODS.map(m => (<option key={m} value={m}>{m}</option>))}
                           </select>) : (<span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#141414]/70">
                             {tx.paymentMethod || 'Not specified'}
@@ -404,7 +404,7 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
 
                       {/* Description column */}
                       <td className="p-3 border-r border-[#141414]/10">
-                        {isEditing ? (<input type="text" value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Optional notes..." className="bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none px-2 py-1 outline-none w-56"/>) : (tx.description ? (<span className="text-[11px] font-medium text-[#141414]/70 leading-snug">{tx.description}</span>) : (<span className="text-[#141414]/25">—</span>))}
+                        {isEditing ? (<input type="text" value={editDescription} onChange={e => setEditDescription(e.target.value)} placeholder="Add notes..." className="bg-[#EBEBE4] focus:bg-white border border-[#141414] text-xs font-semibold rounded-none px-2 py-1 outline-none w-56"/>) : (tx.description ? (<span className="text-[11px] font-medium text-[#141414]/70 leading-snug">{tx.description}</span>) : (<span className="text-[#141414]/25">—</span>))}
                       </td>
 
                       {/* Action buttons */}
@@ -437,8 +437,8 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
         <div className="block md:hidden divide-y divide-[#141414]/15">
           {paginatedList.length === 0 ? (<div className="p-8 text-center text-[#141414]/60">
               <FileText className="w-10 h-10 text-[#141414]/40 mx-auto mb-2"/>
-              <p className="font-serif text-base italic font-bold text-[#141414]">No ledger entries</p>
-              <p className="text-[11px] mt-1">Adjust search filters or add a new entry.</p>
+              <p className="font-serif text-base italic font-bold text-[#141414]">No transactions yet</p>
+              <p className="text-[11px] mt-1">Try changing your filters or add a new transaction.</p>
             </div>) : (paginatedList.map(tx => {
             const isEditing = editingId === tx.id;
             const catDef = categories[tx.category] || { name: 'Other', color: '#999', bgLight: 'bg-slate-100', iconName: 'HelpCircle' };
@@ -460,7 +460,7 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
                             </select>
                           </div>
                           <select value={editPaymentMethod} onChange={e => setEditPaymentMethod(e.target.value)} className="w-full bg-[#EBEBE4] border border-[#141414] text-[11px] rounded-none px-1.5 py-1 outline-none font-bold uppercase">
-                            <option value="">Not Specified</option>
+                            <option value="">Select payment method</option>
                             {PAYMENT_METHODS.map(m => (<option key={m} value={m}>{m}</option>))}
                           </select>
                           <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="bg-[#EBEBE4] border border-[#141414] text-[11px] rounded-none px-1.5 py-1 outline-none text-[#141414] font-mono font-bold w-full"/>
@@ -492,17 +492,17 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
                   <div className="flex justify-end gap-2 pt-1 border-t border-[#141414]/5">
                     {isEditing ? (<>
                         <button onClick={() => saveInlineEdit(tx.id)} className="px-2.5 py-1 text-white bg-[#141414] hover:bg-[#16a34a] border border-[#141414] rounded-none text-[10px] font-mono font-bold uppercase transition-all cursor-pointer flex items-center gap-1">
-                          <Check className="w-3 h-3"/> SAVE
+                          <Check className="w-3 h-3"/> Save
                         </button>
                         <button onClick={() => setEditingId(null)} className="px-2.5 py-1 text-[#141414] bg-[#EBEBE4] hover:bg-neutral-300 border border-[#141414] rounded-none text-[10px] font-mono font-bold uppercase transition-all cursor-pointer flex items-center gap-1">
-                          <X className="w-3 h-3"/> CANCEL
+                          <X className="w-3 h-3"/> Cancel
                         </button>
                       </>) : (<>
                         <button onClick={() => startEditing(tx)} className="p-1 px-2.5 text-[#141414] hover:bg-[#F27D26] hover:text-white border border-[#141414]/20 hover:border-transparent rounded-none transition-all cursor-pointer text-[10px] font-mono font-bold uppercase flex items-center gap-1">
-                          <Edit2 className="w-3 h-3"/> EDIT
+                          <Edit2 className="w-3 h-3"/> Edit
                         </button>
                         <button onClick={() => onDeleteTransaction(tx.id)} className="p-1 px-2.5 text-white bg-[#141414] hover:bg-red-650 rounded-none border border-[#141414] transition-all cursor-pointer text-[10px] font-mono font-bold uppercase flex items-center gap-1">
-                          <Trash2 className="w-3 h-3"/> PURGE
+                          <Trash2 className="w-3 h-3"/> Delete
                         </button>
                       </>)}
                   </div>
@@ -515,7 +515,7 @@ export default function TransactionsTab({ transactions, categories, onDeleteTran
             <span className="font-mono text-[10px] uppercase font-bold tracking-wider">
               SHOWING <span className="font-extrabold text-neutral-900">{Math.min(startIndex + 1, sortedList.length)}</span> -{' '}
               <span className="font-extrabold text-neutral-900">{Math.min(startIndex + itemsPerPage, sortedList.length)}</span> OF{' '}
-              <span className="font-extrabold text-neutral-900">{sortedList.length}</span> RECORDS
+              <span className="font-extrabold text-neutral-900">{sortedList.length}</span> ENTRIES
             </span>
             <div className="flex items-center gap-1.5 font-mono">
               <button onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="p-2 border border-[#141414] bg-white hover:bg-[#EBEBE4]/40 disabled:opacity-30 disabled:hover:bg-white text-[#141414] rounded-none transition-all outline-none cursor-pointer">

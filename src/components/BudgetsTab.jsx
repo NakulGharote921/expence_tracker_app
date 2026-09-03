@@ -37,13 +37,13 @@ export default function BudgetsTab({ budgets, categories, onUpdateBudget, onAddB
       {/* Title block */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#141414]/15 pb-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif italic font-semibold text-[#141414] tracking-tight">Active Monthly Budgets</h2>
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#141414]/60 mt-2">DESIGN LIMITS ON SPECIFIC CLASSIFICATIONS TO SAFE-KEEP DEPOSITS</p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif italic font-semibold text-[#141414] tracking-tight">Your Budgets</h2>
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#141414]/60 mt-2">Set spending limits for each category to stay on track</p>
         </div>
 
         {eligibleCategoriesForNewBudget.length > 0 && (<button id="btn-add-budget-trigger" onClick={() => setShowAddBudget(!showAddBudget)} className="bg-[#141414] text-white hover:bg-[#F27D26] rounded-none text-[10px] font-mono tracking-widest font-bold uppercase py-2 px-4 flex items-center gap-2 border border-[#141414] transition-all outline-none cursor-pointer">
             <Plus className="w-3.5 h-3.5"/>
-            Establish New Limit
+            Add Budget
           </button>)}
       </div>
 
@@ -51,7 +51,7 @@ export default function BudgetsTab({ budgets, categories, onUpdateBudget, onAddB
           <div className="flex justify-between items-center pb-2 border-b border-[#141414]/15">
             <span className="text-[10px] font-mono tracking-[0.2em] font-bold text-[#141414] flex items-center gap-2">
               <Wallet className="w-4 h-4 text-[#F27D26]"/>
-              CONFIGURE CUSTOM BUDGET CAPS
+              New Budget
             </span>
             <button type="button" onClick={() => setShowAddBudget(false)} className="text-[#141414]/60 hover:text-[#141414] text-xs font-mono font-bold tracking-wider cursor-pointer">
               [✕ CLOSE]
@@ -59,13 +59,13 @@ export default function BudgetsTab({ budgets, categories, onUpdateBudget, onAddB
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[9px] font-mono font-bold text-[#141414]/60 mb-1.5 px-0.5 uppercase tracking-wider">Select Category Classification</label>
+              <label className="block text-[9px] font-mono font-bold text-[#141414]/60 mb-1.5 px-0.5 uppercase tracking-wider">Category</label>
               <select value={addCat} onChange={e => setAddCat(e.target.value)} className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white text-xs rounded-none py-2 px-3 outline-none text-[#141414] font-bold uppercase tracking-wider">
                 {eligibleCategoriesForNewBudget.map(c => (<option key={c} value={c}>{c}</option>))}
               </select>
             </div>
             <div>
-              <label className="block text-[9px] font-mono font-bold text-[#141414]/60 mb-1.5 px-0.5 uppercase tracking-wider">Monthly Spending Limit (INR)</label>
+              <label className="block text-[9px] font-mono font-bold text-[#141414]/60 mb-1.5 px-0.5 uppercase tracking-wider">Monthly limit</label>
               <input type="number" value={addLimit} onChange={e => setAddLimit(e.target.value)} placeholder="e.g. 5000" className="w-full bg-[#EBEBE4] border border-[#141414] focus:bg-white text-xs rounded-none py-2 px-3 outline-none font-mono font-semibold" required/>
             </div>
           </div>
@@ -74,7 +74,7 @@ export default function BudgetsTab({ budgets, categories, onUpdateBudget, onAddB
               [CANCEL]
             </button>
             <button type="submit" className="bg-[#141414] hover:bg-[#F27D26] text-white text-[10px] font-mono font-bold uppercase tracking-widest py-2 px-5 rounded-none border border-[#141414] transition-all cursor-pointer">
-              Create Budget Limit
+              Save Budget
             </button>
           </div>
         </form>)}
@@ -144,7 +144,7 @@ export default function BudgetsTab({ budgets, categories, onUpdateBudget, onAddB
                 {/* Progress Visualizer */}
                 <div className="space-y-3 mb-4">
                   <div className="flex items-baseline justify-between text-xs font-mono font-semibold text-[#141414]/70">
-                    <span>SPENT TO DATE</span>
+                    <span>Spent</span>
                     <span className="font-mono text-xs font-bold text-[#141414]">₹{b.spent.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                   </div>
 
@@ -153,12 +153,12 @@ export default function BudgetsTab({ budgets, categories, onUpdateBudget, onAddB
                   </div>
 
                   <div className="flex items-center justify-between font-bold text-[10px] text-[#141414]/60 font-mono uppercase tracking-wider">
-                    <span className={pctTextClass}>{percentage}% USED</span>
+                    <span className={pctTextClass}>{percentage}% used</span>
                     <span>
                       {isEditing ? (<div className="flex items-center gap-1.5">
                           <span>Limit: ₹</span>
                           <input type="number" step="100" value={editLimit} onChange={e => setEditLimit(e.target.value)} className="bg-[#EBEBE4] border border-[#141414] focus:bg-white text-[11px] rounded-none p-1 outline-none w-20 font-mono font-bold"/>
-                        </div>) : (`Max Cap: ₹${b.limit.toLocaleString()}`)}
+                        </div>) : (`Limit: ₹${b.limit.toLocaleString()}`)}
                     </span>
                   </div>
                 </div>
@@ -168,13 +168,13 @@ export default function BudgetsTab({ budgets, categories, onUpdateBudget, onAddB
               <div className="mt-4 pt-3.5 border-t border-[#141414]/15 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
                 {level === 'critical' ? (<div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider uppercase font-black text-red-600">
                     <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0"/>
-                    <span>Critical budget exhaustion</span>
+                    <span>Over budget!</span>
                   </div>) : level === 'warning' ? (<div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider uppercase font-extrabold text-[#F27D26]">
                     <AlertTriangle className="w-3.5 h-3.5 text-[#F27D26] shrink-0"/>
-                    <span>Approaching monthly boundary</span>
+                    <span>Almost at your limit</span>
                   </div>) : (<div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider uppercase font-extrabold text-[#16a34a]">
                     <CheckCircle2 className="w-3.5 h-3.5 text-[#16a34a] shrink-0"/>
-                    <span>Safe budget margins</span>
+                    <span>On track</span>
                   </div>)}
 
                 {isEditing ? (<div className="flex gap-1.5 self-end">
