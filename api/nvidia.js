@@ -1,10 +1,48 @@
 /**
  * Vercel Serverless Function — Nvidia NIM API Proxy
  * Solves CORS by proxying browser requests through the server.
- * Uses native fetch (built into Node 18+) with correct JSON handling.
+ * Uses Node's built-in https module (most reliable in serverless).
  */
 
-const NIM_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
+const https = require('https');
+
+const NIM_HOST = "integrate.api.nvidia.com";
+const NIM_PATH = "/v1/chat/completions";
+
+function callNim(payload, apiKey) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(payload);
+    const options = {
+      hostname: NIM_HOST,
+      path: NIM_PATH,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+        "Accept": "application/json",
+        "Content-Length": Buffer.byteLength(body),
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => { data += chunk; });
+      res.on("end", () => {
+        let parsed;
+        try {
+          parsed = JSON.parse(data);
+        } catch (e) {
+          return reject(new Error(`Invalid JSON from NIM (status ${res.statusCode}): ${data.slice(0, 500)}`));
+        }
+        resolve({ status: res.statusCode, data: parsed });
+      });
+    });
+
+    req.on("error", (e) => reject(e));
+    req.write(body);
+    req.end();
+  });
+}
 
 export default async function handler(req, res) {
   // CORS headers for the browser
@@ -32,21 +70,14 @@ export default async function handler(req, res) {
 
   try {
     const payload = req.body;
+    const result = await callNim(payload, NIM_API_KEY);
 
-    const response = await fetch(NIM_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${NIM_API_KEY}`,
-        "Accept": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    if (result.status >= 400) {
+      console.error("NIM API error:", result.status, JSON.stringify(result.data));
+      return res.status(result.status).json({ error: `NIM API error: ${result.status}` });
+    }
 
-    const rawText = await response.text();
-
-    // Emit raw text back for debugging (temporary)
-    return res.status(200).json({ debug: true, status: response.status, raw: rawText.slice(0, 3000) });
+    return res.status(200).json(result.data);
   } catch (error) {
     console.error("Proxy error:", error.message);
     return res.status(500).json({ error: `Failed to reach AI service: ${error.message}` });
