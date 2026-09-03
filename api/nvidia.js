@@ -75,7 +75,7 @@ export default async function handler(req, res) {
 
     if (result.status >= 400) {
       console.error("NIM API error:", result.status, JSON.stringify(result.data));
-      return res.status(result.status).json({ error: `NIM API error: ${result.status}` });
+      return res.status(result.status).json({ error: `NIM API error: ${result.status}`, detail: result.data });
     }
 
     return res.status(200).json(result.data);
