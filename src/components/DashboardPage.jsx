@@ -31,10 +31,19 @@ const normCat = (c) => String(c || '').trim().toLowerCase();
 
 // Compute a budget's spent amount from the current user's expense transactions,
 // matching category case-insensitively and counting ONLY type === 'expense'.
-const budgetSpent = (category, transactions) =>
-    (transactions || [])
+const budgetSpent = (category, transactions) => {
+    console.log('[DEBUG] budgetSpent called:', { category, transactionsCount: transactions?.length });
+    if (transactions?.length) {
+        console.log('[DEBUG] Sample transaction:', transactions[0]);
+        console.log('[DEBUG] Transaction types:', [...new Set(transactions.map(t => t.type))]);
+        console.log('[DEBUG] Transaction categories:', [...new Set(transactions.map(t => t.category))]);
+    }
+    const result = (transactions || [])
         .filter((t) => t.type === 'expense' && normCat(t.category) === normCat(category))
         .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    console.log('[DEBUG] budgetSpent result:', { category, result });
+    return result;
+};
 
 export default function DashboardPage({ userId }) {
     const location = useLocation();
@@ -95,9 +104,15 @@ export default function DashboardPage({ userId }) {
                 supabaseDb.hydrateProfile(userId, null),
             ]);
 
+            console.log('[DEBUG] Hydrated transactions:', t.data);
             if (t.data?.length) setTransactions(t.data);
             if (c.data && Object.keys(c.data).length) setCategories(c.data);
-            if (b.data) { setBudgets(b.data); } else if (b.error) { console.error('Budget hydration error:', b.error); }
+            if (b.data) { 
+                console.log('[DEBUG] Hydrated budgets:', b.data);
+                setBudgets(b.data); 
+            } else if (b.error) { 
+                console.error('Budget hydration error:', b.error); 
+            }
             setBudgetsLoaded(true);
             if (s.data?.length) setSubscriptions(s.data);
 
@@ -239,10 +254,12 @@ export default function DashboardPage({ userId }) {
     };
     // Auto trigger warnings if budgets surpass limits
     useEffect(() => {
+        console.log('[DEBUG] Recalc effect triggered:', { budgetsLoaded, hydrated, budgetsCount: budgets?.length, transactionsCount: transactions?.length });
         // Wait until both budgets and transactions have been hydrated from
         // Supabase. Without this guard the effect could run while transactions
         // is still empty and wrongly reset every budget's spent to ₹0.00.
         if (!budgetsLoaded || !hydrated) return;
+        console.log('[DEBUG] Recalculating spent for budgets:', budgets);
         // Recalculate spent amounts dynamically from the user's expense
         // transactions (type === 'expense', case-insensitive category match).
         const updatedBudgets = budgets.map(b => {
@@ -420,9 +437,22 @@ export default function DashboardPage({ userId }) {
     };
 
     const handleAddBudget = (category, limit) => {
+        console.log('[DEBUG] handleAddBudget called:', { 
+            category, 
+            limit, 
+            budgetsCount: budgets?.length,
+            budgetsCategories: budgets?.map(b => ({ cat: b.category, norm: normCat(b.category) }))
+        });
         // One budget per user+category (case-insensitive). Never create a
         // duplicate FOOD budget just because the case differs.
-        const existing = budgets.find((b) => normCat(b.category) === normCat(category));
+        const normCategory = normCat(category);
+        const existing = budgets.find((b) => normCat(b.category) === normCategory);
+        console.log('[DEBUG] existing check:', { 
+            inputCategory: category, 
+            normCategory, 
+            existing: existing ? { cat: existing.category, norm: normCat(existing.category) } : null,
+            matchFound: !!existing
+        });
         if (existing) {
             triggerToast(`Budget for ${category} already exists.`);
             return;

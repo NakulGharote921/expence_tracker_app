@@ -4,14 +4,24 @@
  */
 import React, { useState } from 'react';
 import { Wallet, AlertTriangle, PenTool, Plus, CheckCircle2, Trash2 } from 'lucide-react';
+// Normalize category for case-insensitive comparison
+const normCat = (c) => String(c || '').trim().toLowerCase();
+
 export default function BudgetsTab({ budgets, budgetsLoaded, categories, onUpdateBudget, onAddBudget, onDeleteBudget }) {
     const [editingCategory, setEditingCategory] = useState(null);
     const [editLimit, setEditLimit] = useState('');
     const [showAddBudget, setShowAddBudget] = useState(false);
     const [addCat, setAddCat] = useState(Object.keys(categories)[0] || 'Food');
     const [addLimit, setAddLimit] = useState('');
-    const activeCategoriesInBudgets = budgets.map(b => b.category);
-    const eligibleCategoriesForNewBudget = Object.keys(categories).filter(c => !activeCategoriesInBudgets.includes(c));
+    const activeCategoriesInBudgets = budgets.map(b => normCat(b.category));
+    const eligibleCategoriesForNewBudget = Object.keys(categories).filter(c => !activeCategoriesInBudgets.includes(normCat(c)));
+    console.log('[DEBUG] BudgetsTab render:', { 
+        budgetsCount: budgets?.length,
+        budgetsCategories: budgets?.map(b => ({ cat: b.category, norm: normCat(b.category) })),
+        categoriesKeys: Object.keys(categories),
+        activeCategoriesInBudgets,
+        eligibleCategoriesForNewBudget
+    });
     const startEditing = (b) => {
         setEditingCategory(b.category);
         setEditLimit(b.limit.toString());
@@ -26,10 +36,26 @@ export default function BudgetsTab({ budgets, budgetsLoaded, categories, onUpdat
     const handleCreate = (e) => {
         e.preventDefault();
         const limitNum = parseFloat(addLimit);
+        console.log('[DEBUG] handleCreate submit:', { 
+            addCat, 
+            limitNum, 
+            addLimit,
+            eligibleCategoriesForNewBudget,
+            budgetsCount: budgets?.length
+        });
         if (!isNaN(limitNum) && limitNum > 0) {
             onAddBudget(addCat, limitNum);
             setAddLimit('');
+            setAddCat(eligibleCategoriesForNewBudget[0] || '');
             setShowAddBudget(false);
+        }
+    };
+    // Reset form when modal opens/closes
+    const handleToggleAddBudget = (show) => {
+        setShowAddBudget(show);
+        if (show) {
+            setAddCat(eligibleCategoriesForNewBudget[0] || '');
+            setAddLimit('');
         }
     };
     return (<div id="budgets-tab-view" className="space-y-6">
@@ -41,7 +67,7 @@ export default function BudgetsTab({ budgets, budgetsLoaded, categories, onUpdat
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#141414]/60 mt-2">Set spending limits for each category to stay on track</p>
         </div>
 
-        {eligibleCategoriesForNewBudget.length > 0 && (<button id="btn-add-budget-trigger" onClick={() => setShowAddBudget(!showAddBudget)} className="bg-[#141414] text-white hover:bg-[#F27D26] rounded-none text-[10px] font-mono tracking-widest font-bold uppercase py-2 px-4 flex items-center gap-2 border border-[#141414] transition-all outline-none cursor-pointer">
+        {eligibleCategoriesForNewBudget.length > 0 && (<button id="btn-add-budget-trigger" onClick={() => handleToggleAddBudget(!showAddBudget)} className="bg-[#141414] text-white hover:bg-[#F27D26] rounded-none text-[10px] font-mono tracking-widest font-bold uppercase py-2 px-4 flex items-center gap-2 border border-[#141414] transition-all outline-none cursor-pointer">
             <Plus className="w-3.5 h-3.5"/>
             Add Budget
           </button>)}
@@ -53,7 +79,7 @@ export default function BudgetsTab({ budgets, budgetsLoaded, categories, onUpdat
               <Wallet className="w-4 h-4 text-[#F27D26]"/>
               New Budget
             </span>
-            <button type="button" onClick={() => setShowAddBudget(false)} className="text-[#141414]/60 hover:text-[#141414] text-xs font-mono font-bold tracking-wider cursor-pointer">
+            <button type="button" onClick={() => handleToggleAddBudget(false)} className="text-[#141414]/60 hover:text-[#141414] text-xs font-mono font-bold tracking-wider cursor-pointer">
               [✕ CLOSE]
             </button>
           </div>
@@ -70,7 +96,7 @@ export default function BudgetsTab({ budgets, budgetsLoaded, categories, onUpdat
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setShowAddBudget(false)} className="text-xs font-mono font-bold text-[#141414]/60 hover:text-[#141414] py-1.5 px-4 rounded-none transition-all cursor-pointer border border-transparent hover:border-[#141414]/10 bg-transparent">
+            <button type="button" onClick={() => handleToggleAddBudget(false)} className="text-xs font-mono font-bold text-[#141414]/60 hover:text-[#141414] py-1.5 px-4 rounded-none transition-all cursor-pointer border border-transparent hover:border-[#141414]/10 bg-transparent">
               [CANCEL]
             </button>
             <button type="submit" className="bg-[#141414] hover:bg-[#F27D26] text-white text-[10px] font-mono font-bold uppercase tracking-widest py-2 px-5 rounded-none border border-[#141414] transition-all cursor-pointer">
