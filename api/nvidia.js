@@ -43,14 +43,10 @@ export default async function handler(req, res) {
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
+    const rawText = await response.text();
 
-    if (!response.ok) {
-      console.error("NIM API error:", response.status, JSON.stringify(data));
-      return res.status(response.status).json({ error: `NIM API error: ${response.status}` });
-    }
-
-    return res.status(200).json(data);
+    // Emit raw text back for debugging (temporary)
+    return res.status(200).json({ debug: true, status: response.status, raw: rawText.slice(0, 3000) });
   } catch (error) {
     console.error("Proxy error:", error.message);
     return res.status(500).json({ error: `Failed to reach AI service: ${error.message}` });
