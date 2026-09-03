@@ -28,6 +28,7 @@ function callNim(payload, apiKey) {
       let data = "";
       res.on("data", (chunk) => { data += chunk; });
       res.on("end", () => {
+        // Handle non-JSON responses - capture raw for diagnostics
         let parsed;
         try {
           parsed = JSON.parse(data);
