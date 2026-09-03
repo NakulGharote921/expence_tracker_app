@@ -30,10 +30,13 @@ const toSnake = (obj, pairs) => {
   }
   return out;
 };
+// Convert a DB row into an app object.
+// Pairs are [appKey, dbCol] (same convention as toSnake / the *_FIELD_PAIRS lists).
+// Here we read from the DB column (row[dbCol]) and write to the app key (out[appKey]).
 const fromSnake = (row, pairs) => {
   if (!row) return row;
   const out = {};
-  for (const [dbCol, appKey] of pairs) {
+  for (const [appKey, dbCol] of pairs) {
     if (dbCol in row) out[appKey] = row[dbCol];
   }
   return out;
