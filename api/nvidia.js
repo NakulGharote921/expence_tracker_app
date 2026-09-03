@@ -4,7 +4,7 @@
  * Uses Node's built-in https module (most reliable in serverless).
  */
 
-const https = require('https');
+import https from 'https';
 
 const NIM_HOST = "integrate.api.nvidia.com";
 const NIM_PATH = "/v1/chat/completions";
