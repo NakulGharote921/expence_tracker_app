@@ -60,10 +60,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Priority: client-provided key header (validated, working) first,
-  // then server env var as fallback. The header key is what the app uses.
-  const headerKey = req.headers["x-nim-key"];
-  const NIM_API_KEY = headerKey || process.env.NVIDIA_NIM_API_KEY;
+  // Use ONLY the client-provided key header (this key is verified working).
+  // We deliberately ignore the server env var to avoid a stale/invalid key
+  // causing spurious 401s. The browser sends this header from VITE_NVIDIA_NIM_API_KEY.
+  const NIM_API_KEY = req.headers["x-nim-key"];
 
   if (!NIM_API_KEY) {
     return res.status(500).json({ error: "No Nvidia API key available" });
