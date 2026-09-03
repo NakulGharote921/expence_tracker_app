@@ -87,7 +87,7 @@ export default function BudgetsTab({ budgets, budgetsLoaded, categories, onUpdat
             No budgets yet. Add your first spending limit above to get started.
           </div>) : budgets.map((b) => {
             const categoryMeta = categories[b.category] || { color: '#999', bgLight: 'bg-slate-100', iconName: 'HelpCircle' };
-            const percentage = b.limit > 0 ? Math.round((b.spent / b.limit) * 100) : 0;
+            const percentage = b.limit > 0 ? Math.round((b.spent / b.limit) * 10000) / 100 : 0;
             let level = 'safe';
             if (percentage > 100) {
                 level = 'over';

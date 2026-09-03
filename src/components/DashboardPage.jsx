@@ -97,7 +97,8 @@ export default function DashboardPage({ userId }) {
 
             if (t.data?.length) setTransactions(t.data);
             if (c.data && Object.keys(c.data).length) setCategories(c.data);
-            if (b.data) { setBudgets(b.data); setBudgetsLoaded(true); }
+            if (b.data) { setBudgets(b.data); } else if (b.error) { console.error('Budget hydration error:', b.error); }
+            setBudgetsLoaded(true);
             if (s.data?.length) setSubscriptions(s.data);
 
             if (p.data) {
