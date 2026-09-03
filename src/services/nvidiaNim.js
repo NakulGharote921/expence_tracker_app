@@ -84,9 +84,10 @@ export const extractExpenseData = async (userInput, userCategories = []) => {
   try {
     const response = await axios.post(NIM_API_URL, payload, {
       headers: {
-        "Authorization": `Bearer ${NIM_API_KEY}`,
         "Content-Type": "application/json",
-        "Accept": "application/json"
+        "Accept": "application/json",
+        // Fallback key for serverless proxy if NVIDIA_NIM_API_KEY is not set server-side
+        "X-NIM-Key": NIM_API_KEY || '',
       }
     });
 

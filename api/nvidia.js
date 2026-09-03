@@ -4,13 +4,12 @@
  */
 
 const NIM_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
-const NIM_API_KEY = process.env.NVIDIA_NIM_API_KEY || process.env.VITE_NVIDIA_NIM_API_KEY;
 
 export default async function handler(req, res) {
   // CORS headers for the browser
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-NIM-Key");
 
   // Handle preflight
   if (req.method === "OPTIONS") {
@@ -21,8 +20,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  // Priority: server env var (secure), then client-provided header (fallback)
+  const NIM_API_KEY =
+    process.env.NVIDIA_NIM_API_KEY ||
+    req.headers["x-nim-key"];
+
   if (!NIM_API_KEY) {
-    return res.status(500).json({ error: "NVIDIA_NIM_API_KEY not configured on server" });
+    return res.status(500).json({ error: "No Nvidia API key available" });
   }
 
   try {
