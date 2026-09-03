@@ -1,10 +1,8 @@
 /**
  * Vercel Serverless Function — Nvidia NIM API Proxy
  * Solves CORS by proxying browser requests through the server.
- * Uses axios (reliable JSON handling) instead of native fetch.
+ * Uses native fetch (built into Node 18+) with correct JSON handling.
  */
-
-const axios = require('axios');
 
 const NIM_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
 
@@ -35,20 +33,25 @@ export default async function handler(req, res) {
   try {
     const payload = req.body;
 
-    const response = await axios.post(NIM_API_URL, payload, {
+    const response = await fetch(NIM_API_URL, {
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${NIM_API_KEY}`,
         "Accept": "application/json",
       },
+      body: JSON.stringify(payload),
     });
 
-    return res.status(200).json(response.data);
-  } catch (error) {
-    if (error.response) {
-      console.error("NIM API error:", error.response.status, JSON.stringify(error.response.data));
-      return res.status(error.response.status).json({ error: `NIM API error: ${error.response.status}` });
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("NIM API error:", response.status, JSON.stringify(data));
+      return res.status(response.status).json({ error: `NIM API error: ${response.status}` });
     }
+
+    return res.status(200).json(data);
+  } catch (error) {
     console.error("Proxy error:", error.message);
     return res.status(500).json({ error: `Failed to reach AI service: ${error.message}` });
   }
