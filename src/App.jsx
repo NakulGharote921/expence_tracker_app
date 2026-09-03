@@ -6,6 +6,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AuthPage from './components/AuthPage';
 import Dashboard from './pages/Dashboard';
+import Home from './pages/Home';
 import ProtectedRoute from './routes/ProtectedRoute';
 import NotFound from './pages/NotFound';
 
@@ -42,7 +43,7 @@ function AppRoutes() {
                 </>
             ) : (
                 <>
-                    <Route path="/" element={<Navigate to="/login" replace />} />
+                    <Route path="/" element={<Home />} />
                     <Route path="/login" element={<AuthPage initialMode="signin" />} />
                     <Route path="/register" element={<AuthPage initialMode="signup" />} />
 
@@ -54,6 +55,13 @@ function AppRoutes() {
                     <Route path="/reports" element={<Navigate to="/login" replace />} />
 
                     <Route path="*" element={<NotFound />} />
+
+
+                        
+
+                    
+
+                   
                 </>
             )}
         </Routes>

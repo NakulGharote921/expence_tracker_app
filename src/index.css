@@ -1,45 +1,76 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,450;0,600;0,700;1,400;1,600;1,700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Cormorant Garamond", ui-serif, Georgia, serif;
-  
-  --color-primary: #F27D26;
-  --color-on-primary: #ffffff;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Manrope", ui-serif, Georgia, serif;
+  --font-mono: "Manrope", ui-monospace, monospace;
+
+  --font-headline-sm: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-headline-md: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-headline-lg: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-body-sm: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-body-md: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-body-lg: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-label-caps: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display-hero: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-mono-numeric: "Manrope", ui-monospace, monospace;
+
+  --text-headline-sm: 0.875rem;
+  --text-headline-md: 1.125rem;
+  --text-headline-lg: 1.5rem;
+  --text-body-sm: 0.8125rem;
+  --text-body-md: 0.9375rem;
+  --text-body-lg: 1.0625rem;
+  --text-label-caps: 0.6875rem;
+  --text-display-hero: 3rem;
+
+  --color-primary: #141414;
+  --color-on-primary: #F5F5F0;
   --color-primary-container: #141414;
   --color-on-primary-container: #F5F5F0;
-  
+
   --color-secondary: #141414;
-  --color-on-secondary: #ffffff;
+  --color-on-secondary: #F5F5F0;
   --color-secondary-container: #E2E2D9;
   --color-on-secondary-container: #141414;
-  
-  --color-tertiary: #F27D26;
-  --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #141414;
-  --color-on-tertiary-container: #F27D26;
-  
-  --color-background: #F5F5F0;
-  --color-on-background: #141414;
-  
+
   --color-surface: #F5F5F0;
   --color-on-surface: #141414;
-  --color-on-surface-variant: #5c5c56;
-  
+
+  --color-background: #F5F5F0;
+  --color-on-background: #141414;
+
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #EBEBE4;
   --color-surface-container: #E2E2D9;
   --color-surface-container-high: #D5D5CC;
   --color-surface-container-highest: #C7C7BC;
-  
+
   --color-outline: #8F8F85;
   --color-outline-variant: #D5D5CC;
-  
-  --color-error: #ba1a1a;
-  --color-on-error: #ffffff;
-  --color-error-container: #ffdad6;
-  --color-on-error-container: #93000a;
+
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 2.5rem;
+  --space-3xl: 3.5rem;
+  --space-4xl: 5rem;
+
+  --gutter-desktop: 1.5rem;
+  --gutter-mobile: 1rem;
+
+  --px-margin-mobile: 1rem;
+  --px-margin-desktop: 2rem;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+  width: 100%;
+  max-width: 100%;
 }
 
 body {
@@ -47,9 +78,34 @@ body {
   background-color: var(--color-background);
   color: var(--color-on-surface);
   -webkit-font-smoothing: antialiased;
+  margin: 0;
+  padding: 0;
+  overscroll-behavior: none;
+  width: 100%;
+  max-width: 100%;
 }
 
-/* Scrollbar styling */
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -67,8 +123,4 @@ body {
 
 .tonal-elevation {
   box-shadow: 0 4px 30px rgba(20, 20, 20, 0.03);
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }

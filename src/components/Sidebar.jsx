@@ -20,8 +20,8 @@ export default function Sidebar({ onQuickAdd, onOpenSupport, onOpenProfile, prem
       <div className="mb-8 flex flex-col gap-1">
         <span className="text-[9px] font-mono tracking-[0.3em] uppercase text-[#141414]/40">CURATED LEDGER</span>
         <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded-full bg-[#141414] flex items-center justify-center text-white font-serif italic text-sm">
-            W
+          <div className="w-6 h-6 rounded-full bg-[#141414] flex items-center justify-center overflow-hidden">
+            <img src="/favicon.svg" alt="Wealth Flow logo" className="w-4 h-4" />
           </div>
           <span className="font-serif text-xl italic text-[#141414] tracking-tight">Wealth_Flow</span>
         </div>

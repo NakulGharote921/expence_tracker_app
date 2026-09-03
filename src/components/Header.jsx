@@ -27,8 +27,8 @@ export default function Header({ notifications, notifError, markAsRead, clearNot
           <Menu className="w-5 h-5"/>
         </button>
         <div className="flex items-center gap-1.5 lg:hidden">
-          <div className="w-6 h-6 rounded-full bg-[#141414] flex items-center justify-center text-white font-serif italic text-xs">
-            W
+          <div className="w-6 h-6 rounded-full bg-[#141414] flex items-center justify-center overflow-hidden">
+            <img src="/favicon.svg" alt="Wealth Flow logo" className="w-4 h-4" />
           </div>
           <span className="font-serif text-sm sm:text-base italic text-[#141414] tracking-tight hidden min-[380px]:inline-block">Wealth_Flow</span>
         </div>

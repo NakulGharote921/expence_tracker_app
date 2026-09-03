@@ -65,10 +65,18 @@ export default function AuthPage({ initialMode = 'signin' }) {
 
     return (
         <div className="min-h-screen bg-[#F5F5F0] text-[#141414] flex items-center justify-center p-4 font-sans">
-            <div className="w-full max-w-md">
+            <div className="w-full max-w-md relative">
+                <button
+                    onClick={() => navigate('/')}
+                    className="absolute -top-14 left-0 inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest font-bold text-[#141414]/70 hover:text-[#141414] transition-colors cursor-pointer"
+                    aria-label="Back to home"
+                >
+                    <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                    Back
+                </button>
                 <div className="mb-8 flex flex-col items-center gap-2">
-                    <div className="w-12 h-12 rounded-full bg-[#141414] flex items-center justify-center text-white font-serif italic text-2xl">
-                        W
+                    <div className="w-12 h-12 rounded-full bg-[#141414] flex items-center justify-center overflow-hidden">
+                        <img src="/favicon.svg" alt="Wealth Flow logo" className="w-8 h-8" />
                     </div>
                     <span className="font-serif text-3xl italic text-[#141414] tracking-tight">Wealth_Flow</span>
                     <span className="text-[9px] font-mono tracking-[0.3em] uppercase text-[#141414]/40">CURATED LEDGER</span>
