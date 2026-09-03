@@ -11,7 +11,7 @@ import axios from 'axios';
 // Prod: Vercel serverless function at /api/nvidia → proxies to Nvidia NIM
 const NIM_API_URL = '/api/nvidia';
 const NIM_API_KEY = import.meta.env.VITE_NVIDIA_NIM_API_KEY;
-const MODEL = "meta/llama-3.2-11b-vision-instruct";
+const MODEL = "openai/gpt-oss-20b";
 
 /**
  * Build the system prompt with user's custom categories
