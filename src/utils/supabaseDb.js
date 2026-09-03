@@ -172,12 +172,11 @@ export const supabaseDb = {
     return { data: res.data.map((r) => fromSnake(r, TX_FIELD_PAIRS)), error: null };
   },
   // Detect whether the AI metadata columns exist in the DB already.
-  // (They require running the migration; until then we omit them to avoid 400s.)
-  // Result is cached per session so we only probe once.
+  // Uses select('*') so PostgREST never 400s on a missing column.
   async aiColumnsExist() {
     if (_aiColumnsCache !== null) return _aiColumnsCache;
-    const { error } = await supabase.from('transactions').select('source').limit(1);
-    _aiColumnsCache = !error;
+    const { data } = await supabase.from('transactions').select('*').limit(1);
+    _aiColumnsCache = !!(data && data.length > 0 && 'source' in data[0]);
     return _aiColumnsCache;
   },
   async reconcileTransactions(userId, rows) {
