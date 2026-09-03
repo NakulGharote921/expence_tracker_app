@@ -7,7 +7,11 @@
 
 import axios from 'axios';
 
-const NIM_API_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
+// Use Vite proxy in development, direct URL in production
+const isDev = import.meta.env.DEV;
+const NIM_API_URL = isDev 
+  ? '/api/nvidia/v1/chat/completions' 
+  : 'https://integrate.api.nvidia.com/v1/chat/completions';
 const NIM_API_KEY = import.meta.env.VITE_NVIDIA_NIM_API_KEY;
 const MODEL = "meta/llama-3.2-11b-vision-instruct";
 
