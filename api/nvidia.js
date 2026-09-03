@@ -42,13 +42,21 @@ export default async function handler(req, res) {
       body: JSON.stringify(payload),
     });
 
+    const rawText = await response.text();
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("NIM API error:", response.status, errorText);
-      return res.status(response.status).json({ error: `NIM API error: ${response.status}` });
+      console.error("NIM API error:", response.status, rawText);
+      return res.status(response.status).json({ error: `NIM API error: ${response.status}: ${rawText}` });
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (e) {
+      console.error("Invalid JSON from NIM:", rawText.slice(0, 2000));
+      return res.status(502).json({ error: "AI service returned invalid response" });
+    }
+
     return res.status(200).json(data);
   } catch (error) {
     console.error("Proxy error:", error.message, error.stack);
