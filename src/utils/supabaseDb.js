@@ -142,6 +142,9 @@ async function hydrateRows(table, userId, keyField /* kept for clarity */) {
   return { data: (data || []).map(mapRow), error: null };
 }
 
+// Cache for AI column detection (true/false/null=not yet checked)
+let _aiColumnsCache = null;
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -170,10 +173,12 @@ export const supabaseDb = {
   },
   // Detect whether the AI metadata columns exist in the DB already.
   // (They require running the migration; until then we omit them to avoid 400s.)
+  // Result is cached per session so we only probe once.
   async aiColumnsExist() {
+    if (_aiColumnsCache !== null) return _aiColumnsCache;
     const { error } = await supabase.from('transactions').select('source').limit(1);
-    // No error => 'source' column exists (querying an unknown column errors).
-    return !error;
+    _aiColumnsCache = !error;
+    return _aiColumnsCache;
   },
   async reconcileTransactions(userId, rows) {
     // Only include source/ai_confidence if the columns exist in the database.
