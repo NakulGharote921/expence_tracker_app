@@ -1,7 +1,11 @@
 /**
  * Vercel Serverless Function — Nvidia NIM API Proxy
+ *
  * Solves CORS by proxying browser requests through the server.
  * Uses Node's built-in https module (most reliable in serverless).
+ *
+ * Authentication: reads NVIDIA_API_KEY from Vercel environment variables.
+ * The frontend sends NO credentials — the proxy handles everything.
  */
 
 import https from 'https';
@@ -28,7 +32,6 @@ function callNim(payload, apiKey) {
       let data = "";
       res.on("data", (chunk) => { data += chunk; });
       res.on("end", () => {
-        // Handle non-JSON responses - capture raw for diagnostics
         let parsed;
         try {
           parsed = JSON.parse(data);
@@ -49,7 +52,7 @@ export default async function handler(req, res) {
   // CORS headers for the browser
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-NIM-Key");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   // Handle preflight
   if (req.method === "OPTIONS") {
@@ -60,13 +63,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Use ONLY the client-provided key header (this key is verified working).
-  // We deliberately ignore the server env var to avoid a stale/invalid key
-  // causing spurious 401s. The browser sends this header from VITE_NVIDIA_NIM_API_KEY.
-  const NIM_API_KEY = req.headers["x-nim-key"];
+  // Read key ONLY from server environment — never from client headers.
+  const NIM_API_KEY = process.env.NVIDIA_API_KEY;
 
   if (!NIM_API_KEY) {
-    return res.status(500).json({ error: "No Nvidia API key available" });
+    console.error("NVIDIA_API_KEY is not configured in Vercel environment variables.");
+    return res.status(500).json({
+      error: "AI service is not configured. Please set NVIDIA_API_KEY in Vercel."
+    });
   }
 
   try {
@@ -75,7 +79,12 @@ export default async function handler(req, res) {
 
     if (result.status >= 400) {
       console.error("NIM API error:", result.status, JSON.stringify(result.data));
-      return res.status(result.status).json({ error: `NIM API error: ${result.status}`, detail: result.data });
+      return res.status(result.status).json({
+        error: `NIM API error: ${result.status}`,
+        detail: result.status === 401
+          ? "NVIDIA authentication failed. Check that NVIDIA_API_KEY is valid in Vercel."
+          : result.data
+      });
     }
 
     return res.status(200).json(result.data);

@@ -1,24 +1,24 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
- * 
+ *
  * Nvidia NIM API Service for AI Expense Extraction
+ *
+ * The API key lives ONLY on the server (Vercel serverless function).
+ * This client calls POST /api/nvidia with no auth — the proxy handles it.
  */
 
 import axios from 'axios';
 
-// Dev: Vite proxy at /api/nvidia → https://integrate.api.nvidia.com
-// Prod: Vercel serverless function at /api/nvidia → proxies to Nvidia NIM
 const NIM_API_URL = '/api/nvidia';
-const NIM_API_KEY = import.meta.env.VITE_NVIDIA_NIM_API_KEY;
 const MODEL = "openai/gpt-oss-20b";
 
 /**
  * Build the system prompt with user's custom categories
  */
 const buildSystemPrompt = (userCategories = []) => {
-  const categoryList = userCategories.length > 0 
-    ? userCategories.join(', ') 
+  const categoryList = userCategories.length > 0
+    ? userCategories.join(', ')
     : 'Food, Travel, Marketing, Utilities, Other';
 
   return `You are an expense/income extraction assistant for a personal finance app.
@@ -51,13 +51,10 @@ Rules:
 };
 
 /**
- * Extract expense data from natural language input using Nvidia NIM
+ * Extract expense data from natural language input using Nvidia NIM.
+ * Calls our serverless proxy — no API key in the browser.
  */
 export const extractExpenseData = async (userInput, userCategories = []) => {
-  if (!NIM_API_KEY) {
-    throw new Error('NVIDIA_NIM_API_KEY is not configured. Add VITE_NVIDIA_NIM_API_KEY to your .env file.');
-  }
-
   if (!userInput || userInput.trim().length === 0) {
     throw new Error('Please provide some input to analyze.');
   }
@@ -67,13 +64,13 @@ export const extractExpenseData = async (userInput, userCategories = []) => {
   const payload = {
     model: MODEL,
     messages: [
-      { 
-        role: "system", 
-        content: buildSystemPrompt(userCategories) 
+      {
+        role: "system",
+        content: buildSystemPrompt(userCategories)
       },
-      { 
-        role: "user", 
-        content: `Today's date is ${today}.\n\nExtract expense from: "${userInput.trim()}"` 
+      {
+        role: "user",
+        content: `Today's date is ${today}.\n\nExtract expense from: "${userInput.trim()}"`
       }
     ],
     temperature: 0.1,
@@ -83,16 +80,11 @@ export const extractExpenseData = async (userInput, userCategories = []) => {
 
   try {
     const response = await axios.post(NIM_API_URL, payload, {
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        // Fallback key for serverless proxy if NVIDIA_NIM_API_KEY is not set server-side
-        "X-NIM-Key": NIM_API_KEY || '',
-      }
+      headers: { "Content-Type": "application/json" }
     });
 
     const content = response.data?.choices?.[0]?.message?.content;
-    
+
     if (!content) {
       throw new Error('No response from AI model');
     }
@@ -104,7 +96,7 @@ export const extractExpenseData = async (userInput, userCategories = []) => {
     }
 
     const extracted = JSON.parse(cleanedContent);
-    
+
     // Validate and normalize the extracted data
     return normalizeExtractedData(extracted, today);
   } catch (error) {
@@ -129,8 +121,8 @@ const normalizeExtractedData = (data, today) => {
     type: ['expense', 'income'].includes(data.type) ? data.type : 'expense',
     category: data.category || 'Other',
     date: data.date && !isNaN(Date.parse(data.date)) ? data.date : today,
-    payment_method: ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Bank Transfer'].includes(data.payment_method) 
-      ? data.payment_method 
+    payment_method: ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Bank Transfer'].includes(data.payment_method)
+      ? data.payment_method
       : null,
     description: data.description || '',
     confidence: typeof data.confidence === 'number' ? Math.min(1, Math.max(0, data.confidence)) : 0.5

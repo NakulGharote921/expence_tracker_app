@@ -18,13 +18,9 @@ export default defineConfig(() => ({
   server: {
     hmr: process.env.DISABLE_HMR !== 'true',
     watch: process.env.DISABLE_HMR === 'true' ? null : {},
-    proxy: {
-      '/api/nvidia': {
-        target: 'https://integrate.api.nvidia.com',
-        changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path.replace(/^\/api\/nvidia/, ''),
-      },
-    },
+    // NOTE: The /api/nvidia proxy was removed. The AI entry system now uses
+    // a Vercel serverless function (api/nvidia.js) for auth.
+    // For local dev, run: npx vercel dev  (instead of npm run dev)
+    // which will handle /api/nvidia with the server-side NVIDIA_API_KEY.
   },
 }));
