@@ -168,10 +168,20 @@ export const supabaseDb = {
     if (res.error || !res.data) return res;
     return { data: res.data.map((r) => fromSnake(r, TX_FIELD_PAIRS)), error: null };
   },
+  // Detect whether the AI metadata columns exist in the DB already.
+  // (They require running the migration; until then we omit them to avoid 400s.)
+  async aiColumnsExist() {
+    const { error } = await supabase.from('transactions').select('source').limit(1);
+    // No error => 'source' column exists (querying an unknown column errors).
+    return !error;
+  },
   async reconcileTransactions(userId, rows) {
+    // Only include source/ai_confidence if the columns exist in the database.
+    const aiOk = await this.aiColumnsExist();
+    const pairs = aiOk ? TX_FIELD_PAIRS : TX_FIELD_PAIRS.filter(([from]) => from !== 'source' && from !== 'aiConfidence');
     const mapped = (rows || []).map((t) => ({
       user_id: userId,
-      ...toSnake(t, TX_FIELD_PAIRS),
+      ...toSnake(t, pairs),
     }));
     return reconcileRows('transactions', userId, mapped, { idField: 'id', keyField: 'id', withUserId: false });
   },
