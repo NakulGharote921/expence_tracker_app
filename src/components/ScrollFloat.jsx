@@ -40,7 +40,7 @@ const ScrollFloat = ({
 
     const charElements = el.querySelectorAll('.sf-char');
 
-    gsap.fromTo(
+    const tween = gsap.fromTo(
       charElements,
       {
         willChange: 'opacity, transform',
@@ -63,10 +63,28 @@ const ScrollFloat = ({
           scroller,
           start: scrollStart,
           end: scrollEnd,
-          scrub: true
+          scrub: true,
+          refreshPriority: 1,
+          invalidateOnRefresh: true
         }
       }
     );
+
+    const st = tween.scrollTrigger;
+    const doRefresh = () => {
+      if (!st) return;
+      st.refresh();
+    };
+    // Wait a tick + a frame so layout (images, fonts) has settled before measuring.
+    requestAnimationFrame(() => requestAnimationFrame(doRefresh));
+    window.addEventListener('load', doRefresh);
+
+    return () => {
+      window.removeEventListener('load', doRefresh);
+      if (st) st.kill();
+      tween.scrollTrigger = null;
+      tween.kill();
+    };
   }, [scrollContainerRef, animationDuration, ease, scrollStart, scrollEnd, stagger]);
 
   return (
