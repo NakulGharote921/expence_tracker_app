@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import { Link } from 'react-router-dom';
-import BorderGlow from '../BorderGlow';
 import Container from './Container';
 import TrajectoryChart from './TrajectoryChart';
 import TextType from '../TextType';
@@ -58,13 +57,6 @@ export default function HeroSection() {
 
                 {/* Dashboard Preview Card */}
                 <div className="max-w-[1220px] mx-auto">
-                    <BorderGlow
-                        backgroundColor="#FFFFFF"
-                        borderRadius={24}
-                        glowColor="271 91 60"
-                        colors={['#c084fc', '#f472b6', '#38bdf8']}
-                        edgeSensitivity={30}
-                    >
                         <div className="bg-[#FFFFFF] text-[#141414] rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl border border-[#141414]/10 overflow-hidden">
                             {/* Header */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#141414]/10 pb-4 sm:pb-5 mb-5 sm:mb-6 gap-3">
@@ -153,7 +145,6 @@ export default function HeroSection() {
                                 </div>
                             </div>
                         </div>
-                    </BorderGlow>
                 </div>
             </Container>
         </section>
