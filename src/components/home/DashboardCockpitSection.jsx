@@ -5,6 +5,7 @@
 import { Link } from 'react-router-dom';
 import BlurText from '../BlurText';
 import ScrollFloat from '../ScrollFloat';
+import BorderGlow from '../BorderGlow';
 import Container from './Container';
 import TwelveMonthChart from './TwelveMonthChart';
 
@@ -34,6 +35,17 @@ export default function DashboardCockpitSection() {
                     <p className="font-body-lg text-body-lg text-[#141414]/70 mt-3">A unified cockpit for every rupee earned, saved, and invested across all financial accounts.</p>
                 </div>
 
+                <BorderGlow
+                    edgeSensitivity={30}
+                    glowColor="40 80 80"
+                    backgroundColor="#16131C"
+                    borderRadius={28}
+                    glowRadius={40}
+                    glowIntensity={1}
+                    coneSpread={25}
+                    animated={false}
+                    colors={['#c084fc', '#f472b6', '#38bdf8']}
+                >
                     <div className="bg-[#FFFFFF] text-[#141414] rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-10 border border-[#141414]/12 shadow-xl overflow-hidden">
                         {/* Cockpit Header */}
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-[#141414]/10 pb-5 mb-6 lg:mb-8 gap-4">
@@ -154,6 +166,7 @@ export default function DashboardCockpitSection() {
                             </div>
                         </div>
                     </div>
+                </BorderGlow>
             </Container>
         </section>
     );

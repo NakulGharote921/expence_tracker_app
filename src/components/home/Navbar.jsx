@@ -49,18 +49,12 @@ export default function Navbar({ user, displayName, avatarUrl, menuOpen, onToggl
                                 <Link to="/dashboard" className="hidden md:inline-flex items-center justify-center border border-[#141414] bg-transparent text-[#141414] rounded-full px-5 py-2 font-headline-sm text-body-md hover:bg-[#141414] hover:text-[#F5F5F0] transition-colors duration-200 whitespace-nowrap">
                                     Dashboard
                                 </Link>
-                                <Link to="/dashboard" className="flex items-center gap-2.5">
-                                    <div className="w-10 h-10 rounded-full bg-[#141414]/5 flex items-center justify-center overflow-hidden">
-                                        {avatarUrl ? (
-                                            <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span className="text-[10px] font-bold text-[#141414]">{getInitials(displayName || 'User')}</span>
-                                        )}
-                                    </div>
-                                    <div className="font-medium text-[#141414] hidden lg:block">
-                                        <div className="font-headline-sm text-headline-sm">{displayName || 'User'}</div>
-                                        <div className="text-sm font-normal text-[#141414]/60">My Account</div>
-                                    </div>
+                                <Link to="/dashboard" className="w-8 h-8 rounded-full bg-[#141414]/5 flex items-center justify-center overflow-hidden">
+                                    {avatarUrl ? (
+                                        <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="text-[10px] font-bold text-[#141414]">{getInitials(displayName || 'User')}</span>
+                                    )}
                                 </Link>
                             </>
                         ) : (

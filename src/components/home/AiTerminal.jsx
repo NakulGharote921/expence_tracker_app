@@ -2,9 +2,18 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
+import BorderGlow from '../BorderGlow';
+
 /* ── AI terminal: complete entry ───────────────────────── */
 export function AiTerminalComplete() {
     return (
+        <BorderGlow
+            backgroundColor="#141414"
+            borderRadius={24}
+            glowColor="271 91 60"
+            colors={['#c084fc', '#f472b6', '#38bdf8']}
+            edgeSensitivity={30}
+        >
             <div className="text-[#F5F5F0] p-5 sm:p-8 flex flex-col justify-between overflow-hidden">
                 <div>
                     <div className="flex items-center justify-between border-b border-[#F5F5F0]/10 pb-4 mb-5 sm:mb-6 gap-2">
@@ -52,6 +61,7 @@ export function AiTerminalComplete() {
                     </div>
                 </div>
             </div>
+        </BorderGlow>
     );
 }
 
@@ -59,6 +69,13 @@ export function AiTerminalComplete() {
 export function AiTerminalFallback() {
     const options = ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Bank Transfer'];
     return (
+        <BorderGlow
+            backgroundColor="#141414"
+            borderRadius={24}
+            glowColor="271 91 60"
+            colors={['#c084fc', '#f472b6', '#38bdf8']}
+            edgeSensitivity={30}
+        >
             <div className="text-[#F5F5F0] p-5 sm:p-8 flex flex-col justify-between overflow-hidden">
                 <div>
                     <div className="flex items-center justify-between border-b border-[#F5F5F0]/10 pb-4 mb-5 sm:mb-6 gap-2">
@@ -94,5 +111,6 @@ export function AiTerminalFallback() {
                     </p>
                 </div>
             </div>
+        </BorderGlow>
     );
 }

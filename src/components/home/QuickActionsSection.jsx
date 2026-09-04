@@ -5,6 +5,7 @@
 import { Link } from 'react-router-dom';
 import BlurText from '../BlurText';
 import ScrollFloat from '../ScrollFloat';
+import BorderGlow from '../BorderGlow';
 import Container from './Container';
 
 export default function QuickActionsSection() {
@@ -23,7 +24,15 @@ export default function QuickActionsSection() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
                     {/* Left Featured Card */}
-                    <div className="group bg-[#16131c] text-[#F5F5F0] border border-[#16131c] rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 transition-all duration-300 hover:border-[#16131c] shadow-sm flex flex-col justify-between w-full">
+                    <BorderGlow
+                        backgroundColor="#16131c"
+                        borderRadius={24}
+                        glowColor="271 91 60"
+                        colors={['#c084fc', '#f472b6', '#38bdf8']}
+                        edgeSensitivity={30}
+                        className="flex"
+                    >
+                        <div className="group bg-[#16131c] text-[#F5F5F0] border border-[#16131c] rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-10 transition-all duration-300 hover:border-[#16131c] shadow-sm flex flex-col justify-between w-full">
                             <div>
                                 <div className="flex items-center justify-between mb-6">
                                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-[#F5F5F0]/10 group-hover:bg-[#F5F5F0] group-hover:text-[#16131c] flex items-center justify-center transition-colors">
@@ -49,10 +58,18 @@ export default function QuickActionsSection() {
                                 <span className="material-symbols-outlined text-[18px]">north_east</span>
                             </Link>
                         </div>
+                    </BorderGlow>
 
                     {/* Right Stacked Cards */}
                     <div className="flex flex-col gap-5 sm:gap-6">
-                        <div className="group bg-[#16131c] text-[#F5F5F0] border border-[#16131c] rounded-2xl sm:rounded-3xl p-5 sm:p-7 transition-all duration-300 hover:border-[#16131c] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5 w-full">
+                        <BorderGlow
+                            backgroundColor="#16131c"
+                            borderRadius={24}
+                            glowColor="271 91 60"
+                            colors={['#c084fc', '#f472b6', '#38bdf8']}
+                            edgeSensitivity={30}
+                        >
+                            <div className="group bg-[#16131c] text-[#F5F5F0] border border-[#16131c] rounded-2xl sm:rounded-3xl p-5 sm:p-7 transition-all duration-300 hover:border-[#16131c] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5 w-full">
                                 <div className="flex items-start gap-4 min-w-0">
                                     <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-[#F5F5F0]/10 group-hover:bg-[#F5F5F0] flex-shrink-0 flex items-center justify-center transition-colors">
                                         <span className="material-symbols-outlined text-xl sm:text-2xl text-[#F5F5F0] group-hover:text-[#16131c] transition-colors">account_balance_wallet</span>
@@ -67,8 +84,16 @@ export default function QuickActionsSection() {
                                     <span className="material-symbols-outlined text-[18px]">north_east</span>
                                 </Link>
                             </div>
+                        </BorderGlow>
 
-                        <div className="group bg-[#16131c] text-[#F5F5F0] border border-[#16131c] rounded-2xl sm:rounded-3xl p-5 sm:p-7 transition-all duration-300 hover:border-[#16131c] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5 w-full">
+                        <BorderGlow
+                            backgroundColor="#16131c"
+                            borderRadius={24}
+                            glowColor="271 91 60"
+                            colors={['#c084fc', '#f472b6', '#38bdf8']}
+                            edgeSensitivity={30}
+                        >
+                            <div className="group bg-[#16131c] text-[#F5F5F0] border border-[#16131c] rounded-2xl sm:rounded-3xl p-5 sm:p-7 transition-all duration-300 hover:border-[#16131c] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5 w-full">
                                 <div className="flex items-start gap-4 min-w-0">
                                     <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-[#F5F5F0]/10 group-hover:bg-[#F5F5F0] flex-shrink-0 flex items-center justify-center transition-colors">
                                         <span className="material-symbols-outlined text-xl sm:text-2xl text-[#F5F5F0] group-hover:text-[#16131c] transition-colors">monitoring</span>
@@ -83,6 +108,7 @@ export default function QuickActionsSection() {
                                     <span className="material-symbols-outlined text-[18px]">north_east</span>
                                 </Link>
                             </div>
+                        </BorderGlow>
                     </div>
                 </div>
             </Container>
